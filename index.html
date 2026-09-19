@@ -1683,10 +1683,10 @@ FZ.engine = (function () {
     },
     apply() {
       if (!this.el) return;
-      const vw = window.innerWidth, vh = window.innerHeight;
       const s = this.base * this.z;
+      // camera element is flex-centered; translate in screen px so point (x,y) lands on element center
       this.el.style.transform =
-        `translate(${vw / 2}px, ${vh / 2}px) rotate(${this.r}deg) scale(${s}) translate(${-this.x}px, ${-this.y}px)`;
+        `translate(${(PAGE_W / 2 - this.x) * s}px, ${(PAGE_H / 2 - this.y) * s}px) rotate(${this.r}deg) scale(${s})`;
     },
     snapTo(x, y, z, r) {
       this.tweenId++;
