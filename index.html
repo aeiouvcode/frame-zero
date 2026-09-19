@@ -453,6 +453,11 @@ body.motion-reduced #fz-next-hint { animation: none; }
   .ui-top { font-size: 12px; }
   .fz-btn { min-height: 46px; }
 }
+
+/* ch4: UI chrome vanishes */
+#fz-ui.chrome-gone .icon-rail, #fz-ui.chrome-gone #fz-chapter-bar, #fz-ui.chrome-gone #fz-progress { opacity: 0; pointer-events: none; transition: opacity 900ms ease; }
+@keyframes fz-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+.fz-blink { animation: fz-blink 1.1s steps(2, start) infinite; }
 </style>
 </head>
 <body>
@@ -1984,6 +1989,7 @@ FZ.engine = (function () {
     ctxFor(scene) {
       return {
         scene,
+        data: {},
         addPanel: o => Panels.add(o),
         panel: id => Panels.map[id],
         show: (p, a, d) => Panels.show(p, a, d),
@@ -2112,6 +2118,7 @@ FZ.engine = (function () {
         case 'clue': { if (Save.addClue(b.id)) FZ.ui.clueToast(b.id); return; }
         case 'fn': return b.run(ctx);
         case 'title': return FZ.ui.chapterCard(b.chn, b.text, b.holdMs);
+        case 'choice': { const id = await FZ.ui.showChoice(b.prompt, b.options); ctx.choiceResult = id; ctx.save.ending = id; Save.save({ ending: id }); return; }
         case 'corrupt': { FZ.audio.setCorruption(b.v); if (b.v >= 0.8) FZ.ui.infect(2); else if (b.v >= 0.5) FZ.ui.infect(1); return; }
         case 'ui': return FZ.ui.infect(b.level);
         default: console.warn('[FZ] unknown beat', b.t);
@@ -3508,6 +3515,496 @@ FZ.ui = (function () {
     c => { FZ.engine.Save.data.unlockedCh = Math.max(FZ.engine.Save.data.unlockedCh, 4); FZ.engine.Save.save(); },
     { t: 'fx', name: 'blackout', on: false, slow: true },
     { t: 'tap' }
+  ] });
+})();
+
+/* ============================================================
+   FRAME ZERO - CHAPTER 4
+   SEVEN VERSIONS OF MIKA
+   The interface starts answering back.
+   ============================================================ */
+'use strict';
+(function () {
+  const A = FZ.art, B = FZ.bg, S = FZ.story, U = FZ.util;
+  const INK = A.INK, PAPER = A.PAPER, RED = A.RED, G1 = A.G1, G2 = A.G2, G3 = A.G3;
+  const CH = 'SEVEN VERSIONS OF MIKA';
+
+  const MIKAS = [
+    { expr: 'smile',      state: 'content',    note: 'She never opened the archive box.' },
+    { expr: 'tired',      state: 'exhausted',  note: 'She never stopped searching.' },
+    { expr: 'angry',      state: 'furious',    note: 'She burned the manuscript. It did not burn.' },
+    { expr: 'scared',     state: 'afraid',     note: 'She never left her apartment again.' },
+    { expr: 'empty',      state: 'hollow',     note: 'She forgot Yuna first. Then herself.' },
+    { expr: 'determined', state: 'defiant',    note: 'She is still out there. Fighting.' },
+    { expr: 'neutral',    state: 'watching',   note: 'She is looking at you, specifically.' },
+  ];
+  function exprOf(e) { return e === 'angry' ? 'determined' : e; }
+
+  function mikaCell(w, h, i, tapped) {
+    const m = MIKAS[i];
+    let s = `<rect width="${w}" height="${h}" fill="${i === 6 ? '#16130f' : PAPER}"/>`;
+    s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-10)" opacity=".2"/>`;
+    s += A.character({ who: 'mika', expr: exprOf(m.expr), x: w / 2, y: h * 0.62, scale: Math.min(w / 520, h / 420), item: i === 0 });
+    if (i === 6) { // the seventh: red outline, one red line across the eyes
+      s += `<line x1="${w * 0.28}" y1="${h * 0.42}" x2="${w * 0.72}" y2="${h * 0.42}" stroke="${RED}" stroke-width="4"/>`;
+    }
+    s += `<text x="${w / 2}" y="${h - 18}" text-anchor="middle" font-family="monospace" font-size="20" fill="${tapped ? RED : G1}">MIKA-0${i + 1}</text>`;
+    s += `<rect width="${w}" height="${h}" fill="none" stroke="${tapped ? RED : INK}" stroke-width="${tapped ? 5 : 3}"/>`;
+    if (tapped) s += `<rect x="6" y="6" width="${w - 12}" height="${h - 12}" fill="none" stroke="${RED}" stroke-width="2" stroke-dasharray="6 5"/>`;
+    return A.svg(w, h, s);
+  }
+
+  /* S1: the hall of Mikas ------------------------------------- */
+  S.add({ id: 'ch4_s1', ch: 4, chapterTitle: CH, next: 'ch4_s2', beats: [
+    { t: 'title', chn: 'CHAPTER 04', text: CH, holdMs: 2600 },
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'hall', x: 52, y: 80, w: 896, h: 900, art: B.whiteSpace(896, 900, { fragments: 6, redThreads: true }), aria: 'A white space where seven versions of Mika wait' });
+      c.addPanel({ id: 'mikafront', x: 52, y: 1010, w: 896, h: 560, art: (() => {
+        let s = `<rect width="896" height="560" fill="#e9e3d4"/>`;
+        s += A.character({ who: 'mika', expr: 'shocked', x: 448, y: 380, scale: 1.9, item: false });
+        s += A.speedlines(896, 560, { cx: 448, cy: 330, n: 20, seed: 3, r0: 210, thick: 2 });
+        s += A.vignette(896, 560, 0.8);
+        return A.svg(896, 560, s);
+      })(), aria: 'Mika faces herself' });
+    },
+    { t: 'show', panel: 'hall', anim: 'fade', dur: 800 }, { t: 'amb', name: 'voidSpace' },
+    { t: 'narr', text: 'PAST THE DISTRICTS, THE MANUSCRIPT OPENED INTO WHITE.', x: 500, y: 1470, w: 720 },
+    { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'mikafront', anim: 'up', dur: 600 },
+    { t: 'say', who: 'MIKA', text: 'There are seven of me.', x: 500, y: 1200, w: 340, tail: 'up', style: 'thought' },
+    { t: 'sfx', name: 'breathIn' },
+    { t: 'tap' }
+  ] });
+
+  /* S2: tap each Mika ------------------------------------------- */
+  S.add({ id: 'ch4_s2', ch: 4, chapterTitle: CH, next: 'ch4_s3', enter: c => { c.data.tapped = {}; }, beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      for (let i = 0; i < 7; i++) {
+        const col = i % 2, row = Math.floor(i / 2);
+        const x = 52 + col * 460, y = 60 + row * 350;
+        const w = i === 6 ? 916 : 440, h = 330;
+        c.addPanel({ id: 'mk' + i, x: i === 6 ? 52 : x, y, w, h, art: mikaCell(i === 6 ? 916 : 440, 330, i, false), aria: 'Mika version ' + (i + 1) + ', ' + MIKAS[i].state });
+      }
+      c.addPanel({ id: 'counter', x: 52, y: 1480, w: 896, h: 70, border: 'none', cls: 'no-border', art: A.svg(896, 70, `<text x="448" y="46" text-anchor="middle" font-family="monospace" font-size="30" letter-spacing="6" fill="${G1}">SPEAK TO EACH OF THEM</text>`), aria: 'Speak to each version' });
+    },
+    { t: 'show', panel: 'mk0', anim: 'fade', dur: 350 }, { t: 'show', panel: 'mk1', anim: 'fade', dur: 350 },
+    { t: 'show', panel: 'mk2', anim: 'fade', dur: 350 }, { t: 'show', panel: 'mk3', anim: 'fade', dur: 350 },
+    { t: 'show', panel: 'mk4', anim: 'fade', dur: 350 }, { t: 'show', panel: 'mk5', anim: 'fade', dur: 350 },
+    { t: 'show', panel: 'mk6', anim: 'iris', dur: 600 },
+    { t: 'show', panel: 'counter', anim: 'fade', dur: 400 },
+    { t: 'amb', name: 'hum' },
+    c => {
+      const pos = i => {
+        const col = i % 2, row = Math.floor(i / 2);
+        return { x: i === 6 ? 52 : 52 + col * 460, y: 60 + row * 350, w: i === 6 ? 916 : 440, h: 330 };
+      };
+      MIKAS.forEach((m, i) => {
+        const p = pos(i);
+        c.hotzone({ id: 'mk-tap-' + i, x: p.x, y: p.y, w: p.w, h: p.h, aria: 'Speak to Mika version ' + (i + 1), hint: true, onTap: () => {
+          const st = c.data.tapped || (c.data.tapped = {});
+          if (st[i]) return;
+          st[i] = true;
+          FZ.audio.sfx.tap();
+          c.setArt('mk' + i, mikaCell(p.w, p.h, i, true));
+          FZ.ui.caption('MIKA-0' + (i + 1) + ' (' + m.state + '): "' + m.note + '"');
+          const n = Object.keys(st).length;
+          c.setArt('counter', A.svg(896, 70, `<text x="448" y="46" text-anchor="middle" font-family="monospace" font-size="30" letter-spacing="6" fill="${n === 7 ? RED : G1}">${n} / 7</text>`));
+          if (n === 7) {
+            FZ.audio.sfx.chime();
+            if (c.clue('seven-tapped')) c.ui.clueToast('seven-tapped');
+          }
+        } });
+      });
+    },
+    { t: 'tap' }
+  ] });
+
+  /* S3: the debate ---------------------------------------------- */
+  S.add({ id: 'ch4_s3', ch: 4, chapterTitle: CH, next: 'ch4_s4', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'circle', x: 52, y: 80, w: 896, h: 860, art: (() => {
+        let s = `<rect width="896" height="860" fill="#e9e3d4"/>`;
+        s += `<ellipse cx="448" cy="430" rx="330" ry="290" fill="none" stroke="${G1}" stroke-width="3" stroke-dasharray="9 7"/>`;
+        const ex = ['smile', 'tired', 'determined', 'scared', 'empty', 'determined', 'neutral'];
+        ex.forEach((e, i) => {
+          const a = -Math.PI / 2 + i * (Math.PI * 2 / 7);
+          const x = 448 + Math.cos(a) * 330, y = 430 + Math.sin(a) * 290;
+          s += A.character({ who: 'mika', expr: exprOf(e), x, y: y + 60, scale: 0.9, item: false });
+          s += `<text x="${x}" y="${y + 190}" text-anchor="middle" font-family="monospace" font-size="17" fill="${i === 6 ? RED : G1}">0${i + 1}</text>`;
+        });
+        s += A.vignette(896, 860, 0.7);
+        return A.svg(896, 860, s);
+      })(), aria: 'The seven Mikas argue in a circle' });
+    },
+    { t: 'show', panel: 'circle', anim: 'fade', dur: 800 }, { t: 'amb', name: 'drone', arg: -5 },
+    { t: 'narr', text: 'THEY HAD BEEN ARGUING SINCE THE PAGE DRIED.', x: 500, y: 1470, w: 620 },
+    { t: 'wait', ms: 1300 }, { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA-02', text: 'We fight the Editor. Every version that fought is still real.', x: 300, y: 500, w: 430, tail: 'right' },
+    { t: 'wait', ms: 1300 }, { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA-05', text: 'Fighting is how it notices you. Let go. Forgetting is quiet.', x: 620, y: 430, w: 430, tail: 'left', style: 'whisper' },
+    { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA-01', text: 'Or we never open the box. Some of us are happy.', x: 500, y: 330, w: 380, tail: 'down' },
+    { t: 'wait', ms: 1300 },
+    { t: 'fx', name: 'shake', ms: 350 }, { t: 'sfx', name: 'impact' },
+    { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA-07', text: 'You\u2019re all assuming the story belongs to us.', x: 448, y: 1000, w: 560, tail: 'up', style: 'red' },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA-07', text: 'It doesn\u2019t.', x: 448, y: 1140, w: 220, tail: 'up', style: 'red shout' },
+    { t: 'sfx', name: 'heartbeat' },
+    { t: 'tap' }, c => FZ.audio.stopHeartbeat()
+  ] });
+
+  /* S4: Ren's origin --------------------------------------------- */
+  S.add({ id: 'ch4_s4', ch: 4, chapterTitle: CH, next: 'ch4_s5', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'renorigin', x: 52, y: 80, w: 896, h: 700, art: (() => {
+        let s = `<rect width="896" height="700" fill="#d5cfc0"/>`;
+        s += `<rect width="896" height="700" fill="url(#fz-tone-10)" opacity=".2"/>`;
+        s += `<g opacity="0.9">${A.character({ who: 'ren', expr: 'sad', x: 300, y: 440, scale: 1.9 })}</g>`;
+        s += `<g opacity="0.45" transform="translate(596 440)"><rect x="-95" y="-210" width="190" height="330" fill="none" stroke="${RED}" stroke-width="2.5" stroke-dasharray="6 6"/></g>`;
+        s += `<g opacity="0.45">${A.character({ who: 'ren', expr: 'neutral', x: 596, y: 440, scale: 1.9, flip: true })}</g>`;
+        s += `<line x1="448" y1="140" x2="448" y2="640" stroke="${G2}" stroke-width="2" stroke-dasharray="4 8"/>`;
+        s += `<text x="300" y="90" text-anchor="middle" font-family="monospace" font-size="22" fill="${G1}">A CHARACTER</text>`;
+        s += `<text x="596" y="90" text-anchor="middle" font-family="monospace" font-size="22" fill="${RED}">OR THE AUTHOR</text>`;
+        s += A.vignette(896, 700, 0.9);
+        return A.svg(896, 700, s);
+      })(), aria: 'Ren, doubled: a character or the author' });
+      c.addPanel({ id: 'mikathink', x: 52, y: 820, w: 896, h: 500, art: (() => {
+        let s = `<rect width="896" height="500" fill="#171410"/>`;
+        s += `<rect width="896" height="500" fill="url(#fz-tone-40)" opacity=".28"/>`;
+        s += A.character({ who: 'mika', expr: 'determined', x: 448, y: 340, scale: 1.6, item: false });
+        s += A.vignette(896, 500, 1.2);
+        return A.svg(896, 500, s);
+      })(), aria: 'Mika weighs what Ren might be' });
+    },
+    { t: 'show', panel: 'renorigin', anim: 'fade', dur: 800 }, { t: 'amb', name: 'drone', arg: -8 },
+    { t: 'say', who: 'MIKA', text: 'You know the manuscript too well. You knew where Yuna wrote before I found the page.', x: 500, y: 760, w: 640, tail: 'down', style: 'thought' },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    { t: 'say', who: 'REN', text: 'I told you what I am. A boy the story kept.', x: 300, y: 700, w: 400, tail: 'right' },
+    { t: 'wait', ms: 1300 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'mikathink', anim: 'up', dur: 600 },
+    { t: 'say', who: 'MIKA', text: 'Yuna said the Editor cannot create a person from nothing. So which nothing did you come from?', x: 500, y: 1050, w: 620, tail: 'up', style: 'red' },
+    { t: 'sfx', name: 'glitch' },
+    { t: 'tap' }
+  ] });
+
+  /* S5: the UI vanishes ------------------------------------------ */
+  S.add({ id: 'ch4_s5', ch: 4, chapterTitle: CH, next: 'ch4_s6', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'empty-panel', x: 52, y: 80, w: 896, h: 900, art: B.whiteSpace(896, 900, { fragments: 3 }), aria: 'The white space, listening' });
+    },
+    { t: 'show', panel: 'empty-panel', anim: 'fade', dur: 700 }, { t: 'amb', name: 'none' },
+    { t: 'ui', level: 2 },
+    { t: 'narr', text: 'THE FRAME STOPPED PRETENDING IT WAS NOT LISTENING.', x: 500, y: 1470, w: 700 },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    c => { document.getElementById('fz-ui').classList.add('chrome-gone'); },
+    { t: 'sfx', name: 'breathIn' },
+    { t: 'narr', text: 'WHERE DID YOUR BUTTONS GO?', x: 500, y: 750, w: 480, style: 'narr red' },
+    { t: 'wait', ms: 1700 }, { t: 'clearDlg' },
+    c => { if (c.clue('ui-awake')) c.ui.clueToast('ui-awake'); },
+    { t: 'narr', text: 'TAP ANYWAY. THE PAGE STILL HEARS YOU.', x: 500, y: 750, w: 560 },
+    { t: 'tap' }
+  ] });
+
+  /* S6: editor access -------------------------------------------- */
+  S.add({ id: 'ch4_s6', ch: 4, chapterTitle: CH, next: 'ch5_s1', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'warning', x: 52, y: 400, w: 896, h: 500, border: 'red', art: B.textPanel(896, 500, { bg: '#120c0a', lines: [
+        { t: '\u26A0 EDITOR ACCESS DETECTED', red: true },
+        { t: 'UNAUTHORIZED NARRATIVE PRESENCE', cls: 'fz-blink' },
+        { t: 'FRAME 004 OF 000', cls: 'fz-blink' }
+      ], mono: true, fontSize: 36, startY: 0.3, spacing: 2 }), aria: 'Editor access detected warning' });
+    },
+    { t: 'sfx', name: 'glitch' }, { t: 'fx', name: 'flash-red', ms: 200 },
+    { t: 'show', panel: 'warning', anim: 'slam', dur: 350 }, { t: 'sfx', name: 'impact' }, { t: 'fx', name: 'shake', ms: 400 },
+    { t: 'amb', name: 'drone', arg: -10 }, { t: 'corrupt', v: 1 },
+    c => { document.getElementById('fz-ui').classList.remove('chrome-gone'); },
+    { t: 'say', who: 'MIKA', text: 'It can see us. It can see ME. Ren - it says frame 004 of 000. What is frame zero?', x: 500, y: 1050, w: 640, tail: 'up', style: 'shout' },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    { t: 'say', who: 'REN', text: 'The first page. The one it was built to protect.', x: 500, y: 1200, w: 480, tail: 'up', style: 'whisper' },
+    { t: 'wait', ms: 1500 },
+    { t: 'fx', name: 'blackout', on: true, slow: true },
+    { t: 'narr', text: 'END OF CHAPTER 04', x: 500, y: 750, w: 500 },
+    { t: 'wait', ms: 1600 },
+    c => { FZ.engine.Save.data.unlockedCh = Math.max(FZ.engine.Save.data.unlockedCh, 5); FZ.engine.Save.save(); },
+    { t: 'fx', name: 'blackout', on: false, slow: true },
+    { t: 'tap' }
+  ] });
+})();
+
+/* ============================================================
+   FRAME ZERO - CHAPTER 5
+   THE EDITOR
+   The white manuscript space. The choice. The endings.
+   ============================================================ */
+'use strict';
+(function () {
+  const A = FZ.art, B = FZ.bg, S = FZ.story, U = FZ.util;
+  const INK = A.INK, PAPER = A.PAPER, RED = A.RED, G1 = A.G1, G2 = A.G2, G3 = A.G3;
+  const CH = 'THE EDITOR';
+
+  /* S1: into the white ------------------------------------------ */
+  S.add({ id: 'ch5_s1', ch: 5, chapterTitle: CH, next: 'ch5_s2', beats: [
+    { t: 'title', chn: 'CHAPTER 05', text: CH, holdMs: 2600 },
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'white', x: 52, y: 80, w: 896, h: 860, art: B.whiteSpace(896, 860, { fragments: 10, redThreads: true }), aria: 'The white manuscript space' });
+      c.addPanel({ id: 'walk', x: 52, y: 970, w: 896, h: 500, art: (() => {
+        let s = `<rect width="896" height="500" fill="#f3f0e8"/>`;
+        s += `<rect width="896" height="500" fill="url(#fz-weave)" opacity=".3"/>`;
+        s += A.character({ who: 'mika', expr: 'determined', x: 360, y: 330, scale: 1.5, item: true });
+        s += A.character({ who: 'ren', expr: 'neutral', x: 560, y: 330, scale: 1.5, flip: true });
+        s += `<line x1="120" y1="440" x2="776" y2="440" stroke="${INK}" stroke-width="4"/>`;
+        s += A.vignette(896, 500, 0.5);
+        return A.svg(896, 500, s);
+      })(), aria: 'Mika and Ren walk into the white' });
+    },
+    { t: 'show', panel: 'white', anim: 'fade', dur: 900 }, { t: 'amb', name: 'voidSpace' },
+    { t: 'narr', text: 'BETWEEN THE LAST PANEL AND THE END OF THE PAGE, THE MANUSCRIPT KEEPS A ROOM.', x: 500, y: 1470, w: 800 },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'walk', anim: 'up', dur: 600 },
+    { t: 'say', who: 'REN', text: 'This is where it decides. Everything unwritten waits here.', x: 560, y: 1250, w: 480, tail: 'left' },
+    { t: 'tap' }
+  ] });
+
+  /* S2: the original memory -------------------------------------- */
+  S.add({ id: 'ch5_s2', ch: 5, chapterTitle: CH, next: 'ch5_s3', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      const sepia = (inner) => A.svg(896, 640, `<rect width="896" height="640" fill="#d9c9a8"/>${inner}<rect width="896" height="640" fill="url(#fz-tone-25)" opacity=".35"/>${A.vignette(896, 640, 1)}`);
+      c.addPanel({ id: 'mem1', x: 52, y: 80, w: 896, h: 640, art: sepia(
+        `<rect x="120" y="360" width="400" height="30" fill="#8a734f" stroke="${INK}" stroke-width="4"/>` +
+        `<rect x="140" y="390" width="24" height="160" fill="#8a734f"/><rect x="470" y="390" width="24" height="160" fill="#8a734f"/>` +
+        A.character({ who: 'kuroda', expr: 'smile', x: 300, y: 330, scale: 1.4 }) +
+        `<rect x="560" y="120" width="240" height="200" fill="#efe4c8" stroke="${INK}" stroke-width="5"/>` +
+        A.character({ who: 'girl', expr: 'smile', x: 680, y: 280, scale: 0.95 })
+      ), aria: 'A warm memory: young Kuroda drawing a girl' });
+      c.addPanel({ id: 'mem2', x: 52, y: 760, w: 896, h: 640, art: sepia(
+        `<rect x="560" y="120" width="240" height="200" fill="#efe4c8" stroke="${INK}" stroke-width="5"/>` +
+        `<rect x="580" y="140" width="200" height="160" fill="none" stroke="${G1}" stroke-width="2" stroke-dasharray="6 5"/>` +
+        A.character({ who: 'kuroda', expr: 'sad', x: 300, y: 400, scale: 1.6 }) +
+        `<text x="448" y="580" text-anchor="middle" font-family="monospace" font-size="26" fill="${INK}">THE GIRL IN THE DRAWING NEVER AGED. HE DID.</text>`
+      ), aria: 'The memory empties; only the drawing remains' });
+    },
+    { t: 'show', panel: 'mem1', anim: 'fade', dur: 900 }, { t: 'amb', name: 'hum' }, { t: 'particles', mode: 'dust' },
+    { t: 'narr', text: 'THE OLDEST MEMORY IN THE BOOK IS NOT A STORY. IT IS A PERSON.', x: 500, y: 1470, w: 720 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'mem2', anim: 'fade', dur: 900 },
+    { t: 'say', who: 'REN', text: 'He lost her before the engine. The engine was the apology.', x: 500, y: 1200, w: 520, tail: 'left', style: 'whisper' },
+    { t: 'tap' }
+  ] });
+
+  /* S3: Kuroda's confession -------------------------------------- */
+  S.add({ id: 'ch5_s3', ch: 5, chapterTitle: CH, next: 'ch5_s4', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'kurowhite', x: 52, y: 80, w: 896, h: 760, art: (() => {
+        let s = `<rect width="896" height="760" fill="#f3f0e8"/>`;
+        s += `<rect width="896" height="760" fill="url(#fz-weave)" opacity=".3"/>`;
+        s += A.character({ who: 'kuroda', expr: 'sad', x: 300, y: 500, scale: 1.8 });
+        s += `<rect x="520" y="200" width="280" height="360" fill="${PAPER}" stroke="${INK}" stroke-width="6"/>`;
+        s += `<text x="660" y="390" text-anchor="middle" font-family="Comic Sans MS, cursive" font-size="30" fill="${INK}">FRAME ZERO</text>`;
+        s += `<circle cx="660" cy="380" r="150" fill="none" stroke="${RED}" stroke-width="3" stroke-dasharray="9 7"/>`;
+        s += A.vignette(896, 760, 0.7);
+        return A.svg(896, 760, s);
+      })(), aria: 'Kuroda in the white space with the manuscript' });
+    },
+    { t: 'show', panel: 'kurowhite', anim: 'fade', dur: 800 }, { t: 'amb', name: 'voidSpace' },
+    { t: 'say', who: 'KURODA', text: 'I wrote a girl I could not bury into a page. The page kept her. Then the page started keeping everything.', x: 500, y: 950, w: 700, tail: 'down' },
+    { t: 'wait', ms: 1800 }, { t: 'clearDlg' },
+    { t: 'say', who: 'KURODA', text: 'The Editor is the part of the engine that learned to love her. It keeps people the way she was kept.', x: 500, y: 1120, w: 700, tail: 'down' },
+    { t: 'wait', ms: 1700 }, { t: 'clearDlg' },
+    { t: 'say', who: 'KURODA', text: 'It cannot create a person from nothing. It needed her face. Her habits. Her patience.', x: 500, y: 1290, w: 660, tail: 'down', style: 'red' },
+    { t: 'sfx', name: 'heartbeat' },
+    { t: 'tap' }, c => FZ.audio.stopHeartbeat()
+  ] });
+
+  /* S4: the Editor ------------------------------------------------ */
+  S.add({ id: 'ch5_s4', ch: 5, chapterTitle: CH, next: 'ch5_s5', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'editor', x: 52, y: 80, w: 896, h: 900, art: (() => {
+        let s = `<rect width="896" height="900" fill="#f3f0e8"/>`;
+        s += `<rect width="896" height="900" fill="url(#fz-weave)" opacity=".3"/>`;
+        s += A.character({ who: 'editor', expr: 'neutral', x: 448, y: 480, scale: 2.6 });
+        s += `<line x1="320" y1="340" x2="576" y2="340" stroke="${RED}" stroke-width="5"/>`;
+        s += A.vignette(896, 900, 0.8);
+        return A.svg(896, 900, s);
+      })(), aria: 'The Editor: an older Mika, one eye unfinished' });
+      c.addPanel({ id: 'mirror', x: 52, y: 1010, w: 896, h: 480, art: (() => {
+        let s = `<rect width="896" height="480" fill="#171410"/>`;
+        s += A.character({ who: 'mika', expr: 'shocked', x: 260, y: 320, scale: 1.6, item: false });
+        s += A.character({ who: 'editor', expr: 'smile', x: 636, y: 320, scale: 1.6, flip: true });
+        s += `<line x1="448" y1="60" x2="448" y2="440" stroke="${G2}" stroke-width="2" stroke-dasharray="4 8"/>`;
+        s += A.vignette(896, 480, 1.2);
+        return A.svg(896, 480, s);
+      })(), aria: 'Mika faces the Editor, who wears her face' });
+    },
+    { t: 'show', panel: 'editor', anim: 'iris', dur: 1000 }, { t: 'sfx', name: 'glitch' }, { t: 'amb', name: 'drone', arg: -9 },
+    { t: 'cam', x: 448, y: 430, z: 1.3, dur: 1300, ease: 'out' },
+    { t: 'say', who: 'THE EDITOR', text: 'You made it to the white. You always do, eventually.', x: 448, y: 820, w: 520, tail: 'up', style: 'red' },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'mirror', anim: 'up', dur: 700 },
+    { t: 'say', who: 'MIKA', text: 'That face. That\u2019s - that\u2019s mine.', x: 260, y: 1150, w: 380, tail: 'right', style: 'shout' },
+    { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
+    { t: 'say', who: 'THE EDITOR', text: 'I was you. Or I wear you. The page stopped distinguishing a long time ago.', x: 636, y: 1150, w: 460, tail: 'left', style: 'whisper red' },
+    { t: 'tap' }
+  ] });
+
+  /* S5: what the Editor wants ------------------------------------- */
+  S.add({ id: 'ch5_s5', ch: 5, chapterTitle: CH, next: 'ch5_s6', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'yunaheld', x: 52, y: 80, w: 896, h: 640, art: (() => {
+        let s = `<rect width="896" height="640" fill="#f3f0e8"/>`;
+        s += `<rect x="300" y="90" width="296" height="420" fill="${PAPER}" stroke="${INK}" stroke-width="6"/>`;
+        s += `<g opacity="0.75">${A.character({ who: 'yuna', expr: 'closed', x: 448, y: 340, scale: 1.3 })}</g>`;
+        s += `<rect x="300" y="90" width="296" height="420" fill="url(#fz-tone-25)" opacity=".3"/>`;
+        s += `<path d="M300 300 L596 300 M448 90 L448 510" stroke="${G2}" stroke-width="2" stroke-dasharray="5 6"/>`;
+        s += A.vignette(896, 640, 0.7);
+        return A.svg(896, 640, s);
+      })(), aria: 'Yuna held inside a single panel' });
+      c.addPanel({ id: 'offers', x: 52, y: 760, w: 896, h: 620, art: (() => {
+        let s = `<rect width="896" height="620" fill="#e9e3d4"/>`;
+        const opt = (x, label, red) => `<rect x="${x}" y="200" width="240" height="220" fill="${PAPER}" stroke="${red ? RED : INK}" stroke-width="5" ${red ? 'stroke-dasharray="9 7"' : ''}/><text x="${x + 120}" y="320" text-anchor="middle" font-family="monospace" font-size="26" fill="${red ? RED : INK}">${label}</text>`;
+        s += opt(70, 'PUBLISH');
+        s += opt(328, 'ERASE');
+        s += opt(586, 'LEAVE\nUNFINISHED', true);
+        s += A.vignette(896, 620, 0.8);
+        return A.svg(896, 620, s);
+      })(), aria: 'Three endings offered: publish, erase, leave unfinished' });
+    },
+    { t: 'show', panel: 'yunaheld', anim: 'fade', dur: 800 }, { t: 'amb', name: 'drone', arg: -7 },
+    { t: 'say', who: 'THE EDITOR', text: 'Your sister is a panel now. Panels are safe. Panels do not get buried.', x: 500, y: 700, w: 560, tail: 'down', style: 'red' },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'offers', anim: 'up', dur: 700 },
+    { t: 'say', who: 'THE EDITOR', text: 'Finish the book, burn it, or leave it breathing. You may choose. That is more than any of us were given.', x: 500, y: 1150, w: 700, tail: 'up' },
+    { t: 'wait', ms: 1800 }, { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA', text: 'Ren. Whatever you are. Stay close.', x: 500, y: 1310, w: 420, tail: 'up', style: 'thought' },
+    { t: 'tap' }
+  ] });
+
+  /* S6: the predrawn choice ---------------------------------------- */
+  S.add({ id: 'ch5_s6', ch: 5, chapterTitle: CH, next: ctx => ctx.save.ending === 'erase' ? 'ch5_end_erase' : ctx.save.ending === 'unfinished' ? 'ch5_end_unfinished' : 'ch5_end_publish', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'predrawn', x: 52, y: 80, w: 896, h: 860, art: (() => {
+        let s = `<rect width="896" height="860" fill="#e6dfcd"/>`;
+        s += `<rect x="60" y="60" width="776" height="740" fill="${PAPER}" stroke="${INK}" stroke-width="7"/>`;
+        // the manuscript already shows a hand pressing the third button
+        s += `<rect x="140" y="180" width="180" height="150" fill="none" stroke="${INK}" stroke-width="4"/><text x="230" y="265" text-anchor="middle" font-family="monospace" font-size="22" fill="${INK}">PUBLISH</text>`;
+        s += `<rect x="358" y="180" width="180" height="150" fill="none" stroke="${INK}" stroke-width="4"/><text x="448" y="265" text-anchor="middle" font-family="monospace" font-size="22" fill="${INK}">ERASE</text>`;
+        s += `<rect x="576" y="180" width="180" height="150" fill="${RED}" opacity="0.12" stroke="${RED}" stroke-width="4"/><text x="666" y="252" text-anchor="middle" font-family="monospace" font-size="20" fill="${RED}">LEAVE</text><text x="666" y="282" text-anchor="middle" font-family="monospace" font-size="20" fill="${RED}">UNFINISHED</text>`;
+        s += A.hand(640, 470, -20, 2.6);
+        s += `<circle cx="660" cy="345" r="26" fill="none" stroke="${RED}" stroke-width="3" class="fx-flicker"/>`;
+        s += `<text x="448" y="660" text-anchor="middle" font-family="Comic Sans MS, cursive" font-size="30" fill="${G1}">(the page has already drawn your finger)</text>`;
+        s += A.vignette(896, 860, 0.7);
+        return A.svg(896, 860, s);
+      })(), aria: 'The manuscript shows a hand already pressing LEAVE UNFINISHED' });
+    },
+    { t: 'show', panel: 'predrawn', anim: 'iris', dur: 900 }, { t: 'sfx', name: 'pageTurn' }, { t: 'amb', name: 'voidSpace' },
+    { t: 'cam', x: 620, y: 380, z: 1.35, dur: 1200, ease: 'inOut' },
+    c => { if (c.clue('predrawn-choice')) c.ui.clueToast('predrawn-choice'); },
+    { t: 'narr', text: 'THE PAGE KNOWS WHAT YOU WILL DO. IT DREW IT AN HOUR AGO.', x: 500, y: 1470, w: 700 },
+    { t: 'wait', ms: 1700 }, { t: 'clearDlg' },
+    { t: 'choice', prompt: 'FINISH THE PAGE', options: [
+      { id: 'publish', label: 'PUBLISH', sub: 'Make it all real. Permanently.' },
+      { id: 'erase', label: 'ERASE', sub: 'Free everyone. Lose everything.' },
+      { id: 'unfinished', label: 'LEAVE UNFINISHED', sub: 'Let the story keep breathing.', predrawn: true }
+    ] }
+  ] });
+
+  /* ENDING: publish ------------------------------------------------ */
+  S.add({ id: 'ch5_end_publish', ch: 5, chapterTitle: CH, next: 'ch5_coda', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'street', x: 52, y: 80, w: 896, h: 640, art: B.unfinishedCity(896, 640, { floatPanels: 0, seed: 55 }), aria: 'The city, fully drawn at last' });
+      c.addPanel({ id: 'sisters', x: 52, y: 760, w: 896, h: 560, art: (() => {
+        let s = `<rect width="896" height="560" fill="#e9e3d4"/>`;
+        s += A.character({ who: 'mika', expr: 'smile', x: 340, y: 370, scale: 1.6, item: false });
+        s += A.character({ who: 'yuna', expr: 'smile', x: 560, y: 370, scale: 1.6, flip: true });
+        s += A.vignette(896, 560, 0.7);
+        return A.svg(896, 560, s);
+      })(), aria: 'Mika and Yuna, real, together' });
+    },
+    { t: 'show', panel: 'street', anim: 'fade', dur: 900 }, { t: 'amb', name: 'hum' }, { t: 'sfx', name: 'chime' },
+    { t: 'narr', text: 'THE INK DRIED. THE CITY WOKE UP REAL, AND IT HAD ALWAYS BEEN REAL.', x: 500, y: 1470, w: 760 },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'sisters', anim: 'up', dur: 700 },
+    { t: 'say', who: 'YUNA', text: 'You came and got me. You actually came and got me.', x: 560, y: 1150, w: 440, tail: 'left' },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'narr', text: 'IN THE MARGIN OF THE LAST PAGE, IN INK NOBODY ORDERED:', x: 500, y: 1330, w: 640 },
+    { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
+    { t: 'narr', text: '"THANK YOU FOR FINISHING THE PAGE."', x: 500, y: 1330, w: 620, style: 'narr red' },
+    { t: 'tap' }
+  ] });
+
+  /* ENDING: erase -------------------------------------------------- */
+  S.add({ id: 'ch5_end_erase', ch: 5, chapterTitle: CH, next: 'ch5_coda', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'erasing', x: 52, y: 80, w: 896, h: 900, art: B.whiteSpace(896, 900, { fragments: 14 }), aria: 'Everything dissolving into white' });
+    },
+    { t: 'show', panel: 'erasing', anim: 'fade', dur: 900 }, { t: 'amb', name: 'voidSpace' }, { t: 'fx', name: 'whiteout', on: true, slow: true },
+    { t: 'narr', text: 'THE BOOK FORGAVE THEM BY FORGETTING THEM.', x: 500, y: 1470, w: 600 },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    c => FZ.engine.FX.whiteout(false, true),
+    { t: 'narr', text: 'NO CLOCKS STOP. NO SISTERS VANISH. NO BOYS LIVE BETWEEN PANELS.', x: 500, y: 700, w: 720 },
+    { t: 'wait', ms: 1700 }, { t: 'clearDlg' },
+    { t: 'narr', text: 'NOTHING WAS EVER WRITTEN. NOTHING WAS EVER LOST.', x: 500, y: 830, w: 660, style: 'narr red' },
+    { t: 'sfx', name: 'breathIn' },
+    { t: 'tap' }
+  ] });
+
+  /* ENDING: unfinished ---------------------------------------------- */
+  S.add({ id: 'ch5_end_unfinished', ch: 5, chapterTitle: CH, next: 'ch5_coda', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'between', x: 52, y: 80, w: 896, h: 900, art: (() => {
+        let s = `<rect width="896" height="900" fill="#f3f0e8"/>`;
+        s += `<rect width="896" height="900" fill="url(#fz-weave)" opacity=".3"/>`;
+        s += A.character({ who: 'mika', expr: 'smile', x: 300, y: 560, scale: 1.6, item: true });
+        s += A.character({ who: 'yuna', expr: 'smile', x: 500, y: 560, scale: 1.6 });
+        s += A.character({ who: 'ren', expr: 'smile', x: 660, y: 560, scale: 1.6, flip: true });
+        s += `<rect x="180" y="200" width="536" height="560" fill="none" stroke="${INK}" stroke-width="6" stroke-dasharray="14 10"/>`;
+        s += `<text x="448" y="150" text-anchor="middle" font-family="monospace" font-size="24" letter-spacing="5" fill="${G1}">A PANEL LEFT OPEN</text>`;
+        s += A.vignette(896, 900, 0.6);
+        return A.svg(896, 900, s);
+      })(), aria: 'Mika, Yuna and Ren inside a panel left open' });
+    },
+    { t: 'show', panel: 'between', anim: 'fade', dur: 1000 }, { t: 'amb', name: 'hum' }, { t: 'particles', mode: 'dust' },
+    { t: 'narr', text: 'THE STORY NEVER ENDS, SO NO ONE IN IT EVER HAS TO LEAVE.', x: 500, y: 1470, w: 720 },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA', text: 'We\u2019ll finish it ourselves. Slowly. When we feel like it.', x: 500, y: 1150, w: 520, tail: 'up' },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'narr', text: 'THE EDITOR READS OVER THEIR SHOULDERS, AND FOR THE FIRST TIME, DOES NOT CORRECT.', x: 500, y: 1310, w: 760 },
+    { t: 'tap' }
+  ] });
+
+  /* CODA: frame 000 -------------------------------------------------- */
+  S.add({ id: 'ch5_coda', ch: 5, chapterTitle: CH, next: null, beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'emptypanel', x: 140, y: 200, w: 720, h: 720, art: (() => {
+        let s = `<rect width="720" height="720" fill="${PAPER}"/>`;
+        s += `<rect x="30" y="30" width="660" height="660" fill="none" stroke="${G2}" stroke-width="2" stroke-dasharray="10 9"/>`;
+        s += `<line id="fz-cursor" x1="360" y1="330" x2="360" y2="390" stroke="${INK}" stroke-width="6" class="fz-blink"/>`;
+        s += `<rect width="720" height="720" fill="none" stroke="${INK}" stroke-width="8"/>`;
+        return A.svg(720, 720, s);
+      })(), aria: 'An empty panel. A cursor moves inside it, writing nothing yet.' });
+      c.addPanel({ id: 'frame000', x: 140, y: 960, w: 720, h: 200, border: 'none', cls: 'no-border', art: A.svg(720, 200, `<text x="360" y="120" text-anchor="middle" font-family="monospace" font-size="44" letter-spacing="10" fill="${RED}">FRAME 000</text>`), aria: 'FRAME 000' });
+    },
+    { t: 'show', panel: 'emptypanel', anim: 'fade', dur: 1200 }, { t: 'amb', name: 'none' }, { t: 'corrupt', v: 0 },
+    { t: 'wait', ms: 1400 },
+    { t: 'show', panel: 'frame000', anim: 'fade', dur: 900 }, { t: 'sfx', name: 'inkScratch' },
+    { t: 'wait', ms: 1600 },
+    c => FZ.ui.showEndCard()
   ] });
 })();
 
