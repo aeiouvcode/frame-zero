@@ -2145,6 +2145,23 @@ FZ.engine = (function () {
   return { Save, Settings, Perf, Camera, Panels, Dialogue, Particles, FX, Interact, Engine, PAGE_W, PAGE_H };
 })();
 
+/* ---- story registry (must exist before chapter files evaluate) ---- */
+FZ.story = (function () {
+  const byChapter = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  return {
+    add(scene) {
+      FZ.engine.Engine.register(scene);
+      byChapter[scene.ch].push(scene.id);
+    },
+    sceneAt(ch, idx) {
+      const arr = byChapter[ch];
+      return arr && arr.length ? arr[Math.min(idx, arr.length - 1)] : null;
+    },
+    chapterSceneCount(ch) { return byChapter[ch].length; }
+  };
+})();
+
+
 /* ============================================================
    FRAME ZERO - 15-ui.js
    UI chrome: top/bottom bars, overlays (title/settings/clues/
@@ -2790,21 +2807,6 @@ FZ.ui = (function () {
    Assembly + boot. Story registry lives here (chapters populate it).
    ============================================================ */
 'use strict';
-FZ.story = (function () {
-  const byChapter = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-  return {
-    add(scene) {
-      FZ.engine.Engine.register(scene);
-      byChapter[scene.ch].push(scene.id);
-    },
-    sceneAt(ch, idx) {
-      const arr = byChapter[ch];
-      return arr && arr.length ? arr[Math.min(idx, arr.length - 1)] : null;
-    },
-    chapterSceneCount(ch) { return byChapter[ch].length; }
-  };
-})();
-
 (function boot() {
   const U = FZ.util, E = FZ.engine;
   const $ = U.$;
