@@ -1,0 +1,2841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
+<meta name="theme-color" content="#0b0a08">
+<title>FRAME ZERO</title>
+<style>
+/* ============================================================
+   FRAME ZERO - stylesheet
+   near-black ink / paper white / grayscale / restrained crimson
+   ============================================================ */
+:root {
+  --ink: #16130f;
+  --ink-soft: #2b2620;
+  --paper: #f2eee3;
+  --paper-dim: #e6e0d1;
+  --grey-1: #55504a;
+  --grey-2: #8b857c;
+  --grey-3: #c4beb0;
+  --red: #a4161a;
+  --red-deep: #6d0f12;
+  --ui-bg: rgba(16, 13, 10, 0.88);
+  --ui-fg: #e9e4d6;
+  --page-w: 1000;
+  --page-h: 1500;
+  --ui-font: "Courier New", Courier, monospace;
+  --manga-font: "Comic Sans MS", "Segoe Print", "Bradley Hand", cursive;
+  --serif-font: Georgia, "Times New Roman", serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  background: #0b0a08;
+  color: var(--ink);
+  font-family: var(--serif-font);
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+}
+
+#fz-root {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 40%, #171410 0%, #0b0a08 70%);
+}
+
+/* ---------- STAGE / CAMERA ---------- */
+#fz-viewport {
+  position: relative; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+#fz-camera {
+  position: relative;
+  width: 1000px; height: 1500px;
+  flex: 0 0 auto;
+  transform-origin: 500px 750px;
+  will-change: transform;
+}
+#fz-page {
+  position: absolute; inset: 0;
+  background: var(--paper);
+  box-shadow: 0 0 120px rgba(0,0,0,0.9), 0 0 24px rgba(0,0,0,0.6);
+  overflow: hidden;
+  transition: background 600ms ease;
+}
+#fz-page.ch5space { background: #efece4; }
+
+/* layers inside the page */
+.fz-layer { position: absolute; inset: 0; }
+#fz-bg { z-index: 1; }
+#fz-panels { z-index: 3; }
+#fz-fxcanvas { z-index: 6; pointer-events: none; }
+#fz-dialogue { z-index: 8; pointer-events: none; }
+#fz-hotzones { z-index: 9; }
+#fz-inksplash { z-index: 7; pointer-events: none; }
+#fz-pagefx { z-index: 10; pointer-events: none; }
+
+/* ---------- PANELS ---------- */
+.panel {
+  position: absolute;
+  background: var(--paper);
+  border: 5px solid var(--ink);
+  overflow: hidden;
+  opacity: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+.panel.ink-thin { border-width: 3px; }
+.panel.ink-heavy { border-width: 8px; }
+.panel.no-border { border-color: transparent; }
+.panel.red-border { border-color: var(--red); }
+.panel.broken-border { border-style: dashed; }
+.panel.visible { opacity: 1; }
+.panel svg.art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.panel .panel-caption {
+  position: absolute; left: 8px; top: 8px;
+  font-family: var(--ui-font); font-size: 20px; letter-spacing: 2px;
+  background: var(--ink); color: var(--paper); padding: 4px 10px;
+  z-index: 4;
+}
+
+/* panel appear animations */
+@keyframes pan-in-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pan-in-left { from { opacity: 0; transform: translateX(-70px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pan-in-right { from { opacity: 0; transform: translateX(70px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pan-in-up { from { opacity: 0; transform: translateY(60px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pan-in-slam { 0% { opacity: 0; transform: scale(1.6); } 55% { opacity: 1; transform: scale(0.96); } 100% { transform: scale(1); } }
+@keyframes pan-in-iris { from { opacity: 0; transform: scale(0.2) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+.panel.anim-fade   { animation: pan-in-fade 500ms ease both; }
+.panel.anim-left   { animation: pan-in-left 520ms cubic-bezier(.2,.8,.2,1) both; }
+.panel.anim-right  { animation: pan-in-right 520ms cubic-bezier(.2,.8,.2,1) both; }
+.panel.anim-up     { animation: pan-in-up 520ms cubic-bezier(.2,.8,.2,1) both; }
+.panel.anim-slam   { animation: pan-in-slam 380ms cubic-bezier(.2,.9,.3,1.2) both; }
+.panel.anim-iris   { animation: pan-in-iris 700ms ease both; }
+
+/* living-panel micro animations */
+@keyframes flicker { 0%,100% {opacity:1} 88% {opacity:1} 89% {opacity:.55} 90% {opacity:1} 93% {opacity:.7} 94% {opacity:1} }
+@keyframes breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes blink-eyes { 0%,92%,100% { transform: scaleY(1);} 95% { transform: scaleY(0.08);} }
+@keyframes jitter { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-1.5px,1px)} 40%{transform:translate(1px,-1.5px)} 60%{transform:translate(-1px,-1px)} 80%{transform:translate(1.5px,1px)} }
+@keyframes glitch-shift { 0%,100%{transform:translate(0,0) skewX(0)} 10%{transform:translate(-6px,2px) skewX(-4deg)} 11%{transform:translate(0,0)} 34%{transform:translate(4px,-3px) skewX(3deg)} 35%{transform:translate(0,0)} 70%{transform:translate(-3px,-2px)} 71%{transform:translate(0,0)} }
+@keyframes unstable { 0%,100%{transform:rotate(0deg) scale(1)} 25%{transform:rotate(.6deg) scale(1.004)} 55%{transform:rotate(-.5deg) scale(.998)} 80%{transform:rotate(.3deg) scale(1.002)} }
+@keyframes slow-drift { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes panel-pulse { 0%,100%{box-shadow:0 0 0 rgba(164,22,26,0)} 50%{box-shadow:0 0 34px rgba(164,22,26,.45)} }
+@keyframes hue-breach { 0%,100%{filter:none} 50%{filter:contrast(1.3) brightness(1.12)} }
+.fx-flicker { animation: flicker 4.2s infinite; }
+.fx-breathe { animation: breathe 5s ease-in-out infinite; }
+.fx-jitter { animation: jitter .18s infinite; }
+.fx-glitch { animation: glitch-shift 1.4s infinite; }
+.fx-unstable { animation: unstable 3.2s ease-in-out infinite; }
+.fx-drift { animation: slow-drift 7s ease-in-out infinite; }
+.fx-pulse-red { animation: panel-pulse 2.4s ease-in-out infinite; }
+.fx-breach { animation: hue-breach 1.8s ease-in-out infinite; }
+.eyes-blink { animation: blink-eyes 4.6s infinite; transform-origin: center; transform-box: fill-box; }
+
+/* ---------- DIALOGUE ---------- */
+.bubble {
+  position: absolute;
+  max-width: 420px;
+  pointer-events: none;
+  z-index: 8;
+  font-family: var(--serif-font);
+}
+.bubble .b-inner {
+  position: relative;
+  background: #fff;
+  border: 3.5px solid var(--ink);
+  border-radius: 46% / 42%;
+  padding: 20px 26px;
+  font-size: 27px; line-height: 1.28;
+  color: var(--ink);
+  box-shadow: 3px 4px 0 rgba(22,19,15,.18);
+}
+.bubble .tail {
+  position: absolute; bottom: -26px; left: 50%;
+  width: 0; height: 0;
+  border: 14px solid transparent;
+  border-top: 24px solid var(--ink);
+  transform: translateX(-50%);
+}
+.bubble .tail::after {
+  content: ''; position: absolute; left: -9px; top: -24px;
+  border: 9px solid transparent; border-top: 16px solid #fff;
+}
+.bubble.tail-left .tail { left: 22%; }
+.bubble.tail-right .tail { left: 78%; }
+.bubble.thought .b-inner { border-radius: 50%; border-style: dashed; background: #fbf9f3; font-style: italic; color: var(--ink-soft); }
+.bubble.shout .b-inner {
+  border-width: 5px; border-radius: 12px;
+  clip-path: polygon(3% 8%, 12% 0%, 24% 6%, 38% 0%, 52% 7%, 66% 0%, 80% 6%, 93% 1%, 100% 12%, 97% 30%, 100% 52%, 96% 74%, 100% 90%, 88% 100%, 72% 95%, 55% 100%, 40% 94%, 22% 100%, 8% 95%, 0% 82%, 3% 60%, 0% 38%);
+  font-weight: bold; letter-spacing: 1px;
+}
+.bubble.whisper .b-inner { border-width: 2px; border-style: dotted; color: var(--grey-1); font-size: 24px; }
+.bubble.narr .b-inner {
+  border-radius: 0; border-width: 0 0 0 6px; background: var(--ink);
+  color: var(--paper); font-family: var(--ui-font); font-size: 24px; letter-spacing: 1.5px;
+}
+.bubble.narr .tail { display: none; }
+.bubble.red .b-inner { border-color: var(--red); color: var(--red-deep); }
+.bubble.red .tail { border-top-color: var(--red); }
+.bubble.sys .b-inner {
+  border-radius: 0; background: var(--red); border-color: var(--red-deep);
+  color: #fff; font-family: var(--ui-font); letter-spacing: 3px; font-size: 24px;
+}
+.bubble.sys .tail { border-top-color: var(--red-deep); }
+.bubble.blank .b-inner { color: transparent; min-width: 180px; min-height: 60px; }
+.bubble .who {
+  position: absolute; top: -14px; left: 18px;
+  font-family: var(--ui-font); font-size: 17px; letter-spacing: 2px;
+  background: var(--ink); color: var(--paper); padding: 2px 8px; z-index: 2;
+}
+@keyframes bubble-in { 0% { opacity: 0; transform: translateY(12px) scale(.92);} 100% { opacity: 1; transform: translateY(0) scale(1);} }
+.bubble { animation: bubble-in 300ms ease both; }
+
+/* ---------- HOT ZONES / INTERACTION ---------- */
+.hotzone {
+  position: absolute;
+  border: none;
+  cursor: pointer;
+  pointer-events: auto;
+  background: transparent;
+}
+.hotzone .hz-ring {
+  position: absolute; inset: -6px;
+  border: 2px dashed rgba(164,22,26,.0);
+  border-radius: 8px;
+  transition: border-color 300ms ease;
+}
+.hotzone.hint .hz-ring { border-color: rgba(164,22,26,.55); animation: hz-breathe 2s infinite; }
+@keyframes hz-breathe { 0%,100%{opacity:.4} 50%{opacity:1} }
+body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
+
+/* tap ripple */
+.tap-ripple {
+  position: absolute; border-radius: 50%;
+  border: 3px solid var(--ink);
+  pointer-events: none; z-index: 40;
+  animation: ripple .55s ease-out both;
+}
+@keyframes ripple { from { opacity:.8; transform: scale(.2);} to { opacity:0; transform: scale(2.4);} }
+
+/* ---------- SCREEN FX ---------- */
+.screenfx { position: absolute; inset: 0; pointer-events: none; z-index: 30; opacity: 0; }
+.screenfx.flash-red { background: radial-gradient(circle, rgba(164,22,26,.65), rgba(109,15,18,.9)); }
+.screenfx.flash-white { background: #fff; }
+.screenfx.blackout { background: #000; }
+.screenfx.static-noise { background: repeating-conic-gradient(rgba(255,255,255,.08) 0 .0001turn, transparent .0001turn .0002turn); }
+.screenfx.on { opacity: 1; transition: opacity 90ms linear; }
+.screenfx.fade-slow { transition: opacity 1400ms ease; }
+
+#fz-shake-wrap { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; }
+#fz-shake-wrap.shaking { animation: shake-hard .5s linear; }
+@keyframes shake-hard { 0%,100%{transform:translate(0,0)} 15%{transform:translate(-14px,6px)} 30%{transform:translate(12px,-8px)} 45%{transform:translate(-10px,-5px)} 60%{transform:translate(9px,7px)} 75%{transform:translate(-7px,3px)} 90%{transform:translate(5px,-4px)} }
+
+/* ---------- UI CHROME ---------- */
+#fz-ui {
+  position: fixed; inset: 0; z-index: 50; pointer-events: none;
+  font-family: var(--ui-font);
+  transition: opacity 500ms ease;
+}
+#fz-ui.hidden { opacity: 0; }
+#fz-ui > * { pointer-events: auto; }
+
+.ui-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  color: var(--ui-fg);
+  font-size: 14px; letter-spacing: 2px;
+  text-shadow: 0 1px 3px #000;
+}
+#fz-chapter-label { opacity: .85; }
+#fz-progress-wrap { display: flex; align-items: center; gap: 10px; }
+#fz-progress-bar { width: 130px; height: 4px; background: rgba(233,228,214,.18); border-radius: 2px; overflow: hidden; }
+#fz-progress-fill { height: 100%; width: 0%; background: var(--ui-fg); transition: width 400ms ease; }
+
+.ui-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+}
+.ui-nav { display: flex; gap: 10px; }
+.fz-btn {
+  font-family: var(--ui-font);
+  background: var(--ui-bg); color: var(--ui-fg);
+  border: 1px solid rgba(233,228,214,.28);
+  border-radius: 6px;
+  min-width: 56px; min-height: 44px;
+  padding: 10px 16px; font-size: 15px; letter-spacing: 2px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: transform 120ms ease, background 200ms ease, opacity 200ms ease;
+}
+.fz-btn:active { transform: scale(.94); }
+.fz-btn:disabled { opacity: .3; cursor: default; }
+.fz-btn:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.fz-btn.primary { background: var(--ui-fg); color: #14110d; font-weight: bold; }
+#fz-next-hint {
+  position: absolute; bottom: calc(76px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+  color: rgba(233,228,214,.5); font-size: 13px; letter-spacing: 3px;
+  animation: hz-breathe 2.6s infinite; pointer-events: none;
+}
+
+.ui-right {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.fz-icon-btn {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ui-bg); color: var(--ui-fg);
+  border: 1px solid rgba(233,228,214,.28);
+  cursor: pointer; font-size: 18px;
+}
+.fz-icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fz-icon-btn.off { opacity: .45; }
+.fz-icon-btn:focus-visible { outline: 2px solid var(--red); }
+
+/* clues badge */
+#fz-clue-btn { position: relative; }
+#fz-clue-count {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--red); color: #fff; border-radius: 50%;
+  font-size: 11px; min-width: 18px; height: 18px; line-height: 18px; text-align: center;
+}
+
+/* ---------- OVERLAY SCREENS (title / settings / clues / chapters) ---------- */
+.fz-overlay {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(8,7,5,.94);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--ui-fg); font-family: var(--ui-font);
+  padding: 24px;
+  overflow-y: auto;
+}
+.fz-overlay.hidden { display: none; }
+.fz-overlay h2 { letter-spacing: 6px; font-size: 20px; margin-bottom: 24px; font-weight: normal; }
+.fz-overlay .panel-box { width: min(520px, 92vw); }
+
+/* title screen */
+#fz-title-screen { z-index: 90; }
+#fz-title-art { width: min(420px, 78vw); margin-bottom: 18px; }
+#fz-title-word {
+  font-family: var(--serif-font); font-size: clamp(34px, 9vw, 64px);
+  letter-spacing: 12px; color: var(--paper); font-weight: bold;
+  text-shadow: 4px 4px 0 var(--ink);
+  margin: 8px 0 2px;
+}
+#fz-title-word .rz { color: var(--red); }
+#fz-title-sub { font-size: 13px; letter-spacing: 4px; opacity: .6; margin-bottom: 42px; }
+#fz-title-menu { display: flex; flex-direction: column; gap: 14px; width: min(300px, 80vw); }
+#fz-title-menu .fz-btn { font-size: 17px; padding: 14px; }
+#fz-title-foot { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom)); font-size: 11px; letter-spacing: 2px; opacity: .35; }
+
+/* settings rows */
+.set-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid rgba(233,228,214,.12); font-size: 14px; letter-spacing: 1px; }
+.set-row label { flex: 1; }
+.set-row .seg { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.seg .fz-btn { min-width: 0; min-height: 36px; padding: 7px 12px; font-size: 12px; }
+.seg .fz-btn.sel { background: var(--ui-fg); color: #14110d; }
+input.fz-range { width: 130px; accent-color: var(--red); }
+
+/* clues */
+.clue-item { padding: 12px 0; border-bottom: 1px solid rgba(233,228,214,.12); }
+.clue-item .clue-name { font-size: 15px; letter-spacing: 1px; margin-bottom: 4px; }
+.clue-item .clue-name::before { content: '◆ '; color: var(--red); }
+.clue-item .clue-desc { font-size: 12.5px; opacity: .65; line-height: 1.5; }
+.clue-item.locked .clue-name { opacity: .3; } .clue-item.locked .clue-name::before { content: '◇ '; color: var(--grey-2); }
+.clue-item.locked .clue-desc { opacity: .18; }
+
+/* chapter select */
+.chapter-item { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; padding: 16px 18px; margin-bottom: 10px; font-size: 15px; }
+.chapter-item .chn { color: var(--red); margin-right: 12px; }
+.chapter-item.locked { opacity: .3; }
+.chapter-item .st { font-size: 11px; opacity: .6; letter-spacing: 2px; }
+
+/* ---------- CHAPTER TITLE CARD ---------- */
+#fz-chapter-card {
+  position: fixed; inset: 0; z-index: 70;
+  background: #000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--paper); opacity: 0; pointer-events: none;
+  transition: opacity 700ms ease;
+}
+#fz-chapter-card.on { opacity: 1; }
+#fz-chapter-card .chn { font-family: var(--ui-font); letter-spacing: 8px; font-size: 15px; color: var(--red); margin-bottom: 16px; }
+#fz-chapter-card .cht { font-family: var(--serif-font); font-size: clamp(26px, 7vw, 46px); letter-spacing: 6px; text-align: center; padding: 0 20px; }
+#fz-chapter-card .rule { width: 120px; height: 2px; background: var(--red); margin-top: 26px; }
+
+/* ---------- CHOICE (endings) ---------- */
+#fz-choice {
+  position: fixed; inset: 0; z-index: 75;
+  display: none; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding: 0 20px calc(60px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent 30%, rgba(5,4,3,.92));
+}
+#fz-choice.on { display: flex; }
+#fz-choice .choice-prompt { color: var(--ui-fg); font-family: var(--ui-font); letter-spacing: 4px; font-size: 15px; margin-bottom: 22px; text-align:center; }
+#fz-choice .choice-list { display: flex; flex-direction: column; gap: 14px; width: min(440px, 92vw); }
+.choice-opt {
+  background: var(--ui-bg); border: 1px solid rgba(233,228,214,.3);
+  color: var(--ui-fg); text-align: left;
+  padding: 18px 20px; border-radius: 4px; cursor: pointer;
+  font-family: var(--ui-font);
+  transition: border-color 200ms ease, transform 150ms ease;
+}
+.choice-opt .co-label { font-size: 18px; letter-spacing: 4px; margin-bottom: 6px; }
+.choice-opt .co-sub { font-size: 12.5px; opacity: .6; line-height: 1.5; }
+.choice-opt:hover, .choice-opt:focus-visible { border-color: var(--red); transform: translateX(4px); }
+.choice-opt.predrawn { position: relative; }
+.choice-opt.predrawn::after {
+  content: '— already drawn'; position: absolute; right: 12px; top: 10px;
+  font-size: 10px; color: var(--red); letter-spacing: 1px; opacity: 0;
+  transition: opacity 800ms ease;
+}
+.choice-opt.predrawn:hover::after { opacity: .9; }
+
+/* ---------- PAUSE ---------- */
+#fz-pause-veil { position: fixed; inset: 0; z-index: 65; background: rgba(5,4,3,.72); display: none; align-items: center; justify-content: center; color: var(--ui-fg); font-family: var(--ui-font); letter-spacing: 6px; font-size: 18px; }
+#fz-pause-veil.on { display: flex; }
+
+/* ---------- CH5: UI INFECTION ---------- */
+#fz-ui.infected .ui-top, #fz-ui.infected .ui-bottom { font-family: var(--manga-font); }
+#fz-ui.infected #fz-chapter-label { color: var(--red); transform: rotate(-2deg); }
+#fz-ui.infected #fz-progress-bar { border: 2px solid var(--ink); background: var(--paper); height: 14px; transform: rotate(1.5deg); }
+#fz-ui.infected #fz-progress-fill { background: var(--ink); }
+#fz-ui.infected .fz-btn { border: 3px solid var(--ink); background: var(--paper); color: var(--ink); border-radius: 0; transform: rotate(-1deg); }
+#fz-ui.infected .fz-icon-btn { border: 3px solid var(--ink); background: var(--paper); color: var(--ink); border-radius: 40% 60% 55% 45%; }
+#fz-ui.infected #fz-next-hint { color: rgba(22,19,15,.55); }
+#fz-ui.possessed .fz-btn { animation: jitter .3s infinite; }
+
+/* ---------- DEBUG ---------- */
+#fz-debug {
+  position: fixed; left: 8px; bottom: 8px; z-index: 99;
+  background: rgba(0,0,0,.8); color: #6f6;
+  font: 11px/1.5 monospace; padding: 8px 10px; border: 1px solid #363;
+  display: none; white-space: pre; pointer-events: none;
+}
+body.fz-debug #fz-debug { display: block; }
+
+/* ---------- ACCESSIBILITY / MOTION ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#fz-caption-line {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(120px + env(safe-area-inset-bottom));
+  z-index: 55; background: rgba(0,0,0,.78); color: #eee;
+  font-family: var(--ui-font); font-size: 13px; letter-spacing: 1px;
+  padding: 6px 14px; border-radius: 4px; max-width: 88vw; text-align: center;
+  opacity: 0; transition: opacity 300ms ease; pointer-events: none;
+}
+#fz-caption-line.on { opacity: 1; }
+
+body.motion-reduced .fx-flicker, body.motion-reduced .fx-jitter,
+body.motion-reduced .fx-glitch, body.motion-reduced .fx-unstable,
+body.motion-reduced .fx-drift, body.motion-reduced .fx-breathe,
+body.motion-reduced .eyes-blink, body.motion-reduced .fx-pulse-red,
+body.motion-reduced .fx-breach { animation: none !important; }
+body.motion-reduced .panel[class*="anim-"] { animation-duration: 1ms !important; }
+body.motion-reduced #fz-next-hint { animation: none; }
+
+/* small screens */
+@media (max-width: 560px) {
+  .bubble .b-inner { font-size: 22px; padding: 15px 19px; }
+  .bubble { max-width: 320px; }
+  #fz-progress-bar { width: 84px; }
+  .ui-top { font-size: 12px; }
+  .fz-btn { min-height: 46px; }
+}
+</style>
+</head>
+<body>
+<div id="fz-root">
+  <div id="fz-viewport">
+    <div id="fz-shake-wrap">
+      <div id="fz-camera">
+        <div id="fz-page" class="fz-layer"></div>
+        <div id="fz-bg" class="fz-layer"></div>
+        <div id="fz-panels" class="fz-layer"></div>
+        <canvas id="fz-fxcanvas" class="fz-layer"></canvas>
+        <div id="fz-inksplash" class="fz-layer"></div>
+        <div id="fz-dialogue" class="fz-layer"></div>
+        <div id="fz-hotzones" class="fz-layer"></div>
+        <div id="fz-pagefx" class="fz-layer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+
+/* ============================================================
+   FRAME ZERO - 10-util.js
+   Core utilities: namespace, RNG, storage, events, DOM helpers
+   ============================================================ */
+'use strict';
+window.FZ = window.FZ || {};
+
+FZ.util = (function () {
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+
+  function el(tag, cls, parent, attrs) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (attrs) for (const k in attrs) {
+      if (k === 'text') n.textContent = attrs[k];
+      else if (k === 'html') n.innerHTML = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    }
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  // Deterministic RNG (mulberry32) so procedural art is stable per scene
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hashStr(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // Easing
+  const ease = {
+    linear: t => t,
+    inOut: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+    out: t => 1 - Math.pow(1 - t, 3),
+    in: t => t * t * t,
+    outBack: t => { const c = 1.70158; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); },
+    outExpo: t => t === 1 ? 1 : 1 - Math.pow(2, -10 * t)
+  };
+
+  // Tiny event bus
+  const listeners = {};
+  const bus = {
+    on(ev, fn) { (listeners[ev] = listeners[ev] || []).push(fn); return () => bus.off(ev, fn); },
+    off(ev, fn) { const l = listeners[ev]; if (l) { const i = l.indexOf(fn); if (i >= 0) l.splice(i, 1); } },
+    emit(ev, data) { (listeners[ev] || []).slice().forEach(fn => { try { fn(data); } catch (e) { console.error('[FZ bus]', e); } }); }
+  };
+
+  // Storage
+  const SAVE_KEY = 'framezero.save.v1';
+  function loadSave() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* private mode etc. */ }
+    return null;
+  }
+  function storeSave(obj) {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(obj)); } catch (e) { /* ignore */ }
+  }
+  function wipeSave() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+  }
+
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  const isTouch = () => (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window;
+  const prefersReducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  return { $, $$, el, rng, hashStr, clamp, lerp, ease, bus, loadSave, storeSave, wipeSave, wait, isTouch, prefersReducedMotion, escapeHtml, SAVE_KEY };
+})();
+
+/* ============================================================
+   FRAME ZERO - 11-audio.js
+   Procedural Web Audio: no external files.
+   Buses: amb / sfx / music -> master. Starts on first gesture.
+   Reality corruption escalates distortion.
+   ============================================================ */
+'use strict';
+FZ.audio = (function () {
+  const U = FZ.util;
+  let ctx = null, master, ambBus, sfxBus, musBus;
+  let started = false, muted = false, volume = 0.8;
+  let corruption = 0; // 0..1, raises detune/noise as reality destabilizes
+  let currentAmb = null, currentAmbNodes = [];
+  let heartbeatTimer = null;
+
+  function ensureCtx() {
+    if (ctx) return true;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : volume;
+    // gentle limiter-ish compressor to avoid clipping
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18; comp.knee.value = 22; comp.ratio.value = 8;
+    master.connect(comp); comp.connect(ctx.destination);
+    ambBus = ctx.createGain(); ambBus.gain.value = 0.55; ambBus.connect(master);
+    sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(master);
+    musBus = ctx.createGain(); musBus.gain.value = 0.5; musBus.connect(master);
+    return true;
+  }
+
+  function start() {
+    if (!ensureCtx()) return false;
+    if (ctx.state === 'suspended') ctx.resume();
+    started = true;
+    U.bus.emit('audio:started');
+    return true;
+  }
+
+  function noiseBuffer(seconds, brown) {
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+      else d[i] = w;
+    }
+    return buf;
+  }
+
+  function loopNoise(buf, bus, filterType, freq, q, gain) {
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    let node = src;
+    if (filterType) {
+      const f = ctx.createBiquadFilter(); f.type = filterType; f.frequency.value = freq; f.Q.value = q || 0.8;
+      src.connect(f); node = f;
+    }
+    const g = ctx.createGain(); g.gain.value = gain;
+    node.connect(g); g.connect(bus);
+    src.start();
+    return { src, gain: g };
+  }
+
+  function stopAmb(fadeMs) {
+    currentAmbNodes.forEach(n => {
+      try {
+        const t = ctx.currentTime;
+        if (n.gain) { n.gain.gain.cancelScheduledValues(t); n.gain.gain.setValueAtTime(n.gain.gain.value, t); n.gain.gain.linearRampToValueAtTime(0, t + (fadeMs || 400) / 1000); }
+        if (n.src) setTimeout(() => { try { n.src.stop(); } catch (e) {} }, (fadeMs || 400) + 60);
+        if (n.osc) { n.osc.stop(t + (fadeMs || 400) / 1000 + 0.05); }
+      } catch (e) {}
+    });
+    currentAmbNodes = [];
+    currentAmb = null;
+  }
+
+  /* Ambient beds ------------------------------------------------ */
+  const amb = {
+    none() { stopAmb(600); },
+    rain(intensity) {
+      if (!started || currentAmb === 'rain') return; stopAmb();
+      currentAmb = 'rain';
+      const n = loopNoise(noiseBuffer(2.5), ambBus, 'bandpass', 1400, 0.35, 0.16 * (intensity || 1));
+      const n2 = loopNoise(noiseBuffer(3.1, true), ambBus, 'lowpass', 500, 0.4, 0.10 * (intensity || 1));
+      currentAmbNodes.push(n, n2);
+    },
+    hum() {
+      if (!started || currentAmb === 'hum') return; stopAmb();
+      currentAmb = 'hum';
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 60;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220;
+      const g = ctx.createGain(); g.gain.value = 0.018;
+      o.connect(f); f.connect(g); g.connect(ambBus); o.start();
+      const n = loopNoise(noiseBuffer(2), ambBus, 'highpass', 4000, 0.5, 0.012);
+      currentAmbNodes.push({ osc: o, gain: g }, n);
+    },
+    rainHum() {
+      if (!started || currentAmb === 'rainHum') return; stopAmb();
+      currentAmb = 'rainHum';
+      const n = loopNoise(noiseBuffer(2.5), ambBus, 'bandpass', 1300, 0.35, 0.15);
+      currentAmbNodes.push(n);
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 60;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 200;
+      const g = ctx.createGain(); g.gain.value = 0.016;
+      o.connect(f); f.connect(g); g.connect(ambBus); o.start();
+      currentAmbNodes.push({ osc: o, gain: g });
+    },
+    drone(semi) {
+      if (!started || currentAmb === 'drone') return; stopAmb(900);
+      currentAmb = 'drone';
+      const base = 55 * Math.pow(2, (semi || 0) / 12);
+      [0, 0.7, -0.5].forEach(det => {
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = base; o.detune.value = det * 12 + corruption * 40 * (Math.random() - 0.5);
+        const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300 + corruption * 900;
+        const g = ctx.createGain(); g.gain.value = 0.03;
+        const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07 + Math.random() * 0.05;
+        const lg = ctx.createGain(); lg.gain.value = 0.012;
+        lfo.connect(lg); lg.connect(g.gain);
+        o.connect(f); f.connect(g); g.connect(ambBus); o.start(); lfo.start();
+        currentAmbNodes.push({ osc: o, gain: g }, { osc: lfo });
+      });
+    },
+    windTunnel() {
+      if (!started || currentAmb === 'wind') return; stopAmb();
+      currentAmb = 'wind';
+      const n = loopNoise(noiseBuffer(3, true), ambBus, 'bandpass', 400, 0.6, 0.14);
+      currentAmbNodes.push(n);
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 38;
+      const g = ctx.createGain(); g.gain.value = 0.05; o.connect(g); g.connect(ambBus); o.start();
+      currentAmbNodes.push({ osc: o, gain: g });
+    },
+    voidSpace() {
+      if (!started || currentAmb === 'void') return; stopAmb(1200);
+      currentAmb = 'void';
+      const n = loopNoise(noiseBuffer(4, true), ambBus, 'lowpass', 160, 0.4, 0.09);
+      currentAmbNodes.push(n);
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 220; o.detune.value = corruption * 60;
+      const g = ctx.createGain(); g.gain.value = 0.006;
+      const trem = ctx.createOscillator(); trem.frequency.value = 0.16;
+      const tg = ctx.createGain(); tg.gain.value = 0.005;
+      trem.connect(tg); tg.connect(g.gain);
+      o.connect(g); g.connect(ambBus); o.start(); trem.start();
+      currentAmbNodes.push({ osc: o, gain: g }, { osc: trem });
+    }
+  };
+
+  /* One-shot SFX ------------------------------------------------ */
+  function env(node, peak, a, d, bus) {
+    const g = ctx.createGain(); const t = ctx.currentTime;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
+    node.connect(g); g.connect(bus || sfxBus);
+    return g;
+  }
+
+  const sfx = {
+    tap() { if (!started) return; const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = 900; env(o, 0.08, 0.004, 0.07); o.start(); o.stop(ctx.currentTime + 0.1); },
+    pageTurn() {
+      if (!started) return;
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.4);
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.7;
+      f.frequency.setValueAtTime(500, ctx.currentTime);
+      f.frequency.exponentialRampToValueAtTime(3800, ctx.currentTime + 0.22);
+      src.connect(f); env(f, 0.28, 0.02, 0.3); src.start(); src.stop(ctx.currentTime + 0.45);
+    },
+    paperRustle() {
+      if (!started) return;
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.3);
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2500;
+      src.connect(f); env(f, 0.12, 0.015, 0.22); src.start(); src.stop(ctx.currentTime + 0.3);
+    },
+    thunder() {
+      if (!started) return;
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(2.2, true);
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 140;
+      src.connect(f); env(f, 0.5, 0.03, 2.0); src.start(); src.stop(ctx.currentTime + 2.3);
+    },
+    lightOut() {
+      if (!started) return;
+      const o = ctx.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(120, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.5);
+      env(o, 0.22, 0.005, 0.55); o.start(); o.stop(ctx.currentTime + 0.6);
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.15);
+      src.connect(env(src, 0.15, 0.002, 0.12)); src.start(); src.stop(ctx.currentTime + 0.16);
+    },
+    emergency() {
+      if (!started) return;
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 660;
+      const g = env(o, 0.05, 0.3, 1.6, ambBus); o.start(); o.stop(ctx.currentTime + 2);
+    },
+    heartbeat(on) {
+      if (!started) return;
+      if (on === false) { if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; } return; }
+      if (heartbeatTimer) return;
+      const thump = (dt, v) => setTimeout(() => {
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(70, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(38, ctx.currentTime + 0.16);
+        env(o, v, 0.008, 0.22); o.start(); o.stop(ctx.currentTime + 0.3);
+      }, dt);
+      heartbeatTimer = setInterval(() => { thump(0, 0.4); thump(280, 0.25); }, 950);
+    },
+    glitch(intensity) {
+      if (!started) return;
+      const k = intensity || 1;
+      for (let i = 0; i < 5 * k; i++) {
+        setTimeout(() => {
+          const o = ctx.createOscillator(); o.type = 'square';
+          o.frequency.value = 150 + Math.random() * 2600;
+          const ring = ctx.createGain(); ring.gain.value = 0;
+          const mod = ctx.createOscillator(); mod.frequency.value = 30 + Math.random() * 120;
+          const mg = ctx.createGain(); mg.gain.value = 1;
+          mod.connect(mg); mg.connect(ring.gain);
+          o.connect(ring); env(ring, 0.07, 0.002, 0.05 + Math.random() * 0.09);
+          o.start(); mod.start();
+          const st = ctx.currentTime + 0.2; o.stop(st); mod.stop(st);
+        }, i * (40 + Math.random() * 60));
+      }
+    },
+    impact() {
+      if (!started) return;
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(160, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.4);
+      env(o, 0.55, 0.005, 0.5); o.start(); o.stop(ctx.currentTime + 0.55);
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.2);
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900;
+      src.connect(f); env(f, 0.3, 0.002, 0.18); src.start(); src.stop(ctx.currentTime + 0.25);
+    },
+    clockTick() {
+      if (!started) return;
+      [0, 120].forEach(dt => setTimeout(() => {
+        const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 2100;
+        env(o, 0.035, 0.001, 0.03); o.start(); o.stop(ctx.currentTime + 0.05);
+      }, dt));
+    },
+    inkScratch() {
+      if (!started) return;
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.6);
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 2.5;
+      f.frequency.setValueAtTime(5200, ctx.currentTime);
+      f.frequency.exponentialRampToValueAtTime(1600, ctx.currentTime + 0.5);
+      src.connect(f); env(f, 0.06, 0.03, 0.5); src.start(); src.stop(ctx.currentTime + 0.62);
+    },
+    chime() {
+      if (!started) return;
+      [523, 659, 784].forEach((fr, i) => setTimeout(() => {
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = fr * (1 + corruption * (Math.random() - 0.5) * 0.2);
+        env(o, 0.07, 0.01, 1.1); o.start(); o.stop(ctx.currentTime + 1.2);
+      }, i * 160));
+    },
+    breathIn() {
+      if (!started) return;
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(0.5);
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 800; f.Q.value = 1.4;
+      src.connect(f); env(f, 0.05, 0.18, 0.3); src.start(); src.stop(ctx.currentTime + 0.55);
+    }
+  };
+
+  return {
+    start, amb, sfx,
+    get started() { return started; },
+    get state() { return ctx ? ctx.state : 'none'; },
+    setMuted(m) { muted = m; if (master) master.gain.linearRampToValueAtTime(m ? 0 : volume, ctx.currentTime + 0.1); },
+    get muted() { return muted; },
+    setVolume(v) { volume = U.clamp(v, 0, 1); if (master && !muted) master.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.05); },
+    get volume() { return volume; },
+    setCorruption(c) { corruption = U.clamp(c, 0, 1); },
+    stopHeartbeat() { sfx.heartbeat(false); }
+  };
+})();
+
+/* ============================================================
+   FRAME ZERO - 12-art.js
+   Procedural manga art primitives + character constructor.
+   All art is generated SVG: screentone, hatching, ink work.
+   No external assets.
+   ============================================================ */
+'use strict';
+FZ.art = (function () {
+  const U = FZ.util;
+  const INK = '#16130f', PAPER = '#f2eee3', RED = '#a4161a';
+  const G1 = '#55504a', G2 = '#8b857c', G3 = '#c4beb0';
+
+  /* ---------- shared SVG defs (patterns & filters) ---------- */
+  let defUid = 0;
+  function defs() {
+    return `<defs>
+      <pattern id="fz-tone-10" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="1.1" fill="${INK}"/></pattern>
+      <pattern id="fz-tone-25" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="1.9" fill="${INK}"/></pattern>
+      <pattern id="fz-tone-40" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="2.6" fill="${INK}"/></pattern>
+      <pattern id="fz-tone-60" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="3.5" cy="3.5" r="3.1" fill="${INK}"/></pattern>
+      <pattern id="fz-tone-grey" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="1.7" fill="${G2}"/></pattern>
+      <pattern id="fz-hatch-45" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.6" height="7" fill="${INK}"/></pattern>
+      <pattern id="fz-hatch-m45" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="1.3" height="7" fill="${INK}"/></pattern>
+      <pattern id="fz-hatch-0" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="1.2" height="6" fill="${INK}"/></pattern>
+      <pattern id="fz-xhatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.1" height="8" fill="${INK}"/><rect y="0" width="8" height="1.1" fill="${INK}"/></pattern>
+      <pattern id="fz-stipple" width="12" height="12" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="3" r="0.8" fill="${INK}"/><circle cx="8" cy="9" r="0.7" fill="${INK}"/><circle cx="10" cy="2" r="0.6" fill="${INK}"/><circle cx="4" cy="10" r="0.9" fill="${INK}"/>
+      </pattern>
+      <pattern id="fz-weave" width="14" height="14" patternUnits="userSpaceOnUse">
+        <path d="M0 7 H14 M7 0 V14" stroke="${G3}" stroke-width="0.7" fill="none"/>
+      </pattern>
+      <filter id="fz-rough" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"/>
+      </filter>
+      <filter id="fz-rough-hard" x="-8%" y="-8%" width="116%" height="116%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="3" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="5"/>
+      </filter>
+      <filter id="fz-grain">
+        <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" result="n"/>
+        <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.35 0.35 0.35 0 0"/>
+        <feComposite operator="over" in2="SourceGraphic"/>
+      </filter>
+      <linearGradient id="fz-grad-dark" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${G2}"/><stop offset="1" stop-color="${INK}"/>
+      </linearGradient>
+      <linearGradient id="fz-grad-sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${G1}"/><stop offset="1" stop-color="${G3}"/>
+      </linearGradient>
+      <radialGradient id="fz-vign" cx="0.5" cy="0.5" r="0.75">
+        <stop offset="0.62" stop-color="rgba(0,0,0,0)"/><stop offset="1" stop-color="rgba(10,8,6,0.55)"/>
+      </radialGradient>
+      <radialGradient id="fz-lamp" cx="0.5" cy="0.35" r="0.8">
+        <stop offset="0" stop-color="rgba(255,252,240,0.9)"/><stop offset="1" stop-color="rgba(255,252,240,0)"/>
+      </radialGradient>
+    </defs>`;
+  }
+
+  function svg(w, h, inner, extra) {
+    return `<svg class="art" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" ${extra || ''}>${defs()}${inner}</svg>`;
+  }
+
+  /* ---------- effect helpers (return svg fragments) ---------- */
+  function speedlines(w, h, opts) {
+    opts = opts || {};
+    const cx = opts.cx != null ? opts.cx : w / 2, cy = opts.cy != null ? opts.cy : h / 2;
+    const n = opts.n || 26, r = U.rng(opts.seed || 7);
+    let s = `<g stroke="${opts.color || INK}" stroke-linecap="round">`;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + r() * 0.2;
+      const r0 = (opts.r0 || Math.min(w, h) * 0.24) * (0.85 + r() * 0.4);
+      const r1 = Math.max(w, h) * 0.75;
+      const x0 = cx + Math.cos(a) * r0, y0 = cy + Math.sin(a) * r0;
+      const x1 = cx + Math.cos(a) * r1, y1 = cy + Math.sin(a) * r1;
+      s += `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" stroke-width="${(1 + r() * (opts.thick || 3)).toFixed(1)}" opacity="${(0.35 + r() * 0.5).toFixed(2)}"/>`;
+    }
+    return s + '</g>';
+  }
+
+  function impactFlash(w, h, opts) {
+    opts = opts || {};
+    const cx = opts.cx != null ? opts.cx : w / 2, cy = opts.cy != null ? opts.cy : h / 2;
+    const r = U.rng(opts.seed || 3);
+    let s = `<g fill="${opts.color || INK}">`;
+    const n = opts.n || 12;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + r() * 0.35;
+      const len = Math.min(w, h) * (0.3 + r() * 0.28);
+      const wid = 4 + r() * 14;
+      const x0 = cx + Math.cos(a) * 10, y0 = cy + Math.sin(a) * 10;
+      const x1 = cx + Math.cos(a) * len, y1 = cy + Math.sin(a) * len;
+      const px = Math.cos(a + Math.PI / 2) * wid / 2, py = Math.sin(a + Math.PI / 2) * wid / 2;
+      s += `<polygon points="${x0},${y0} ${x1 + px},${y1 + py} ${x1 - px},${y1 - py}" opacity="${(0.7 + r() * 0.3).toFixed(2)}"/>`;
+    }
+    return s + '</g>';
+  }
+
+  function inkSplatter(w, h, opts) {
+    opts = opts || {};
+    const r = U.rng(opts.seed || 11);
+    const cx = opts.cx != null ? opts.cx : w / 2, cy = opts.cy != null ? opts.cy : h / 2;
+    const spread = opts.spread || Math.min(w, h) * 0.4;
+    let s = `<g fill="${opts.color || INK}">`;
+    for (let i = 0; i < (opts.n || 24); i++) {
+      const a = r() * Math.PI * 2, d = Math.pow(r(), 0.5) * spread;
+      const rad = 0.8 + Math.pow(r(), 2.2) * (opts.maxR || 9);
+      s += `<circle cx="${(cx + Math.cos(a) * d).toFixed(1)}" cy="${(cy + Math.sin(a) * d).toFixed(1)}" r="${rad.toFixed(1)}" opacity="${(0.5 + r() * 0.5).toFixed(2)}"/>`;
+    }
+    return s + '</g>';
+  }
+
+  function rainStreaks(w, h, opts) {
+    opts = opts || {};
+    const r = U.rng(opts.seed || 5);
+    let s = `<g stroke="${opts.color || 'rgba(240,238,230,0.5)'}" stroke-linecap="round" class="${opts.cls || ''}">`;
+    for (let i = 0; i < (opts.n || 40); i++) {
+      const x = r() * w, y = r() * h, len = 14 + r() * 30;
+      const dx = (opts.slant || 0.12) * len;
+      s += `<line x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${(x + dx).toFixed(1)}" y2="${(y + len).toFixed(1)}" stroke-width="${(0.8 + r() * 1.1).toFixed(1)}" opacity="${(0.25 + r() * 0.5).toFixed(2)}"/>`;
+    }
+    return s + '</g>';
+  }
+
+  function dust(w, h, opts) {
+    opts = opts || {};
+    const r = U.rng(opts.seed || 9);
+    let s = `<g fill="${opts.color || 'rgba(120,114,104,0.5)'}">`;
+    for (let i = 0; i < (opts.n || 30); i++) {
+      s += `<circle cx="${(r() * w).toFixed(1)}" cy="${(r() * h).toFixed(1)}" r="${(0.6 + r() * 1.8).toFixed(1)}" opacity="${(0.15 + r() * 0.4).toFixed(2)}"/>`;
+    }
+    return s + '</g>';
+  }
+
+  const vignette = (w, h, strength) => `<rect width="${w}" height="${h}" fill="url(#fz-vign)" opacity="${strength == null ? 1 : strength}"/>`;
+
+  function redLine(x, y, len, angle, thick) {
+    return `<line x1="${x}" y1="${y}" x2="${x + Math.cos(angle || 0) * (len || 40)}" y2="${y + Math.sin(angle || 0) * (len || 40)}" stroke="${RED}" stroke-width="${thick || 2.5}" stroke-linecap="round"/>`;
+  }
+
+  /* ============================================================
+     CHARACTER CONSTRUCTOR
+     Bust format, viewBox 0 0 200 300. Stylized ink manga figures.
+     ============================================================ */
+  const FACES = {
+    neutral: { eyeOpen: 1, brow: 0, mouth: 'flat' },
+    tired: { eyeOpen: 0.45, brow: -2, mouth: 'flat', bags: true },
+    shocked: { eyeOpen: 1.35, brow: -8, mouth: 'open', irisSmall: true },
+    scared: { eyeOpen: 1.25, brow: -10, browIn: 6, mouth: 'openSmall', irisSmall: true },
+    sad: { eyeOpen: 0.7, brow: 4, browIn: 5, mouth: 'down' },
+    determined: { eyeOpen: 0.85, brow: 7, mouth: 'flat' },
+    smile: { eyeOpen: 0.6, brow: 0, mouth: 'smile' },
+    closed: { eyeOpen: 0.05, brow: 0, mouth: 'flat' },
+    empty: { eyeOpen: 1, brow: 0, mouth: 'none', hollow: true }
+  };
+
+  const CHAR_DEFS = {
+    mika: {
+      skin: '#efe9dc', hair: INK,
+      hairPath: 'M38 78 C30 30 62 10 100 10 C138 10 170 30 162 78 L158 96 C150 74 146 58 100 58 C54 58 50 74 42 96 Z',
+      fringe: 'M42 76 C60 58 140 58 158 76 C140 66 124 70 100 70 C76 70 60 66 42 76 Z',
+      hairLong: null,
+      cloth: { fill: G2, collar: true, oversized: true },
+      item: 'notebook'
+    },
+    ren: {
+      skin: '#f4f0e6', hair: '#100e0b',
+      hairPath: 'M36 84 C28 34 58 8 100 8 C142 8 172 34 164 84 C160 66 154 52 146 48 C150 64 144 58 138 50 C140 66 132 56 124 52 C126 64 112 54 100 54 C88 54 74 64 76 52 C68 56 60 66 62 50 C54 58 48 64 46 84 Z',
+      fringe: null, hairLong: null,
+      cloth: { fill: '#241f1a', collar: false },
+      unfinished: true, redEye: true
+    },
+    yuna: {
+      skin: '#f0eadd', hair: '#1d1913',
+      hairPath: 'M34 82 C26 26 60 8 100 8 C140 8 174 26 166 82 L176 150 C168 152 160 146 158 136 L152 92 C146 66 130 56 100 56 C70 56 54 66 48 92 L42 136 C40 146 32 152 24 150 Z',
+      fringe: 'M48 72 C66 56 134 56 152 72 C134 62 118 66 100 66 C82 66 66 62 48 72 Z',
+      hairLong: true, clip: true,
+      cloth: { fill: G3, collar: false }
+    },
+    kuroda: {
+      skin: '#e9e2d2', hair: G2,
+      hairPath: 'M44 74 C44 36 66 16 100 16 C134 16 156 36 156 74 C150 50 132 40 100 40 C68 40 50 50 44 74 Z',
+      fringe: null, hairLong: null, glasses: true, aged: true,
+      cloth: { fill: '#211d18', collar: true, coat: true }
+    },
+    editor: {
+      skin: '#efe9dc', hair: '#241f19',
+      hairPath: 'M36 80 C28 28 60 8 100 8 C140 8 172 28 164 80 L170 138 C162 140 156 134 154 124 L150 92 C144 62 128 54 100 54 C72 54 56 62 50 92 L46 124 C44 134 38 140 30 138 Z',
+      fringe: 'M44 74 C62 56 138 56 156 74 C138 64 122 68 100 68 C78 68 62 64 44 74 Z',
+      hairLong: true, streaks: true,
+      cloth: { fill: '#181410', collar: true },
+      incompleteEye: true
+    },
+    girl: {
+      skin: '#efe9dc', hair: '#26211b',
+      hairPath: 'M40 80 C32 34 62 12 100 12 C138 12 168 34 160 80 C150 58 130 50 100 50 C70 50 50 58 40 80 Z',
+      fringe: null, hairLong: null,
+      cloth: { fill: G2 }
+    },
+    silhouette: {
+      skin: INK, hair: INK, solid: true,
+      hairPath: 'M38 78 C30 30 62 10 100 10 C138 10 170 30 162 78 L158 92 C150 70 146 54 100 54 C54 54 50 70 42 92 Z',
+      cloth: { fill: INK }
+    }
+  };
+
+  // Draw a bust. opts: {who, expr, x, y, scale, flip, pose:'front'|'side'|'back', opacity, id, blink}
+  function character(o) {
+    const cdef = CHAR_DEFS[o.who || 'mika'];
+    const f = FACES[o.expr || 'neutral'];
+    const solid = cdef.solid;
+    const skin = solid ? INK : cdef.skin;
+    let g = '';
+
+    // torso
+    const clothFill = cdef.cloth.fill;
+    if (o.pose === 'back') {
+      g += `<path d="M100 96 C60 96 44 130 40 190 L36 300 L164 300 L160 190 C156 130 140 96 100 96 Z" fill="${clothFill}"/>`;
+      g += `<path d="M100 96 C60 96 44 130 40 190 L36 300 L164 300 L160 190 C156 130 140 96 100 96 Z" fill="url(#fz-hatch-45)" opacity="0.35"/>`;
+      g += `<ellipse cx="100" cy="62" rx="44" ry="46" fill="${cdef.hair}"/>`;
+      g += `<path d="M56 62 C56 30 76 12 100 12 C124 12 144 30 144 62 C144 84 128 104 100 104 C72 104 56 84 56 62 Z" fill="${cdef.hair}"/>`;
+    } else {
+      const wide = cdef.cloth.oversized ? 10 : 0;
+      g += `<path d="M100 118 C${58 - wide} 118 ${42 - wide} 150 ${38 - wide} 210 L${34 - wide} 300 L${166 + wide} 300 L${162 + wide} 210 C${158 + wide} 150 ${142 + wide} 118 100 118 Z" fill="${clothFill}"/>`;
+      g += `<path d="M100 118 C${58 - wide} 118 ${42 - wide} 150 ${38 - wide} 210 L${34 - wide} 300 L${166 + wide} 300 L${162 + wide} 210 C${158 + wide} 150 ${142 + wide} 118 100 118 Z" fill="url(#fz-hatch-45)" opacity="0.28"/>`;
+      if (cdef.cloth.collar) {
+        g += `<path d="M78 118 L100 150 L122 118 L114 112 L100 132 L86 112 Z" fill="${PAPER}" stroke="${INK}" stroke-width="2.5"/>`;
+      }
+      if (cdef.cloth.coat) {
+        g += `<path d="M100 150 L100 300" stroke="${INK}" stroke-width="3"/>`;
+        g += `<path d="M64 190 L84 190 M116 190 L136 190" stroke="${INK}" stroke-width="3"/>`;
+      }
+      // neck + head
+      g += `<path d="M88 96 L88 122 C88 132 112 132 112 122 L112 96 Z" fill="${skin}" stroke="${solid ? 'none' : INK}" stroke-width="2.5"/>`;
+      g += `<ellipse cx="100" cy="66" rx="46" ry="52" fill="${skin}" stroke="${solid ? 'none' : INK}" stroke-width="3.5"/>`;
+      // ears
+      g += `<ellipse cx="55" cy="72" rx="7" ry="11" fill="${skin}" stroke="${solid ? 'none' : INK}" stroke-width="2.5"/>`;
+      g += `<ellipse cx="145" cy="72" rx="7" ry="11" fill="${skin}" stroke="${solid ? 'none' : INK}" stroke-width="2.5"/>`;
+
+      if (!solid) {
+        // eyes
+        const ey = 70, ex = 20;
+        const open = f.eyeOpen;
+        [-ex, ex].forEach((dx, idx) => {
+          const cx = 100 + dx;
+          if (cdef.incompleteEye && idx === 1) {
+            // Editor: right eye only sketched
+            g += `<g opacity="0.85"><ellipse cx="${cx}" cy="${ey}" rx="11" ry="${7 * open}" fill="none" stroke="${INK}" stroke-width="1.6" stroke-dasharray="3 3"/>` +
+                 `<line x1="${cx - 6}" y1="${ey - 8}" x2="${cx + 6}" y2="${ey + 6}" stroke="${INK}" stroke-width="1" opacity="0.6"/></g>`;
+            return;
+          }
+          if (f.hollow) {
+            g += `<ellipse cx="${cx}" cy="${ey}" rx="11" ry="${8 * open}" fill="${INK}"/>`;
+            return;
+          }
+          g += `<g class="${o.blink === false ? '' : 'eyes-blink'}" style="animation-delay:${(Math.random() * 3).toFixed(1)}s">` +
+               `<ellipse cx="${cx}" cy="${ey}" rx="10.5" ry="${(8 * Math.max(open, 0.08)).toFixed(1)}" fill="#fff" stroke="${INK}" stroke-width="2.6"/>`;
+          if (open > 0.15) {
+            const irisR = f.irisSmall ? 2.6 : 4.6;
+            g += `<circle cx="${cx}" cy="${ey + (open < 0.7 ? 2 : 0)}" r="${irisR}" fill="${INK}"/>`;
+            g += `<circle cx="${cx - 1.4}" cy="${ey - 1.4}" r="1.3" fill="#fff"/>`;
+          }
+          g += `</g>`;
+          if (cdef.redEye && idx === 1) g += redLine(cx - 8, ey + 9, 16, 0, 1.8);
+          if (f.bags) g += `<path d="M${cx - 8} ${ey + 12} Q ${cx} ${ey + 16} ${cx + 8} ${ey + 12}" stroke="${G1}" stroke-width="1.4" fill="none"/>`;
+        });
+        // brows
+        const bTilt = f.brow || 0, bIn = f.browIn || 0;
+        g += `<line x1="${78 - bIn}" y1="${56 + bTilt}" x2="${92}" y2="${54 - bTilt}" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>`;
+        g += `<line x1="${108}" y1="${54 - bTilt}" x2="${122 + bIn}" y2="${56 + bTilt}" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>`;
+        // nose
+        g += `<path d="M100 82 L97 90 L102 91" stroke="${INK}" stroke-width="2" fill="none"/>`;
+        // mouth
+        const my = 100;
+        if (f.mouth === 'flat') g += `<line x1="90" y1="${my}" x2="110" y2="${my}" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/>`;
+        else if (f.mouth === 'open') g += `<ellipse cx="100" cy="${my + 3}" rx="9" ry="8" fill="${INK}"/>`;
+        else if (f.mouth === 'openSmall') g += `<ellipse cx="100" cy="${my + 2}" rx="5.5" ry="6" fill="${INK}"/>`;
+        else if (f.mouth === 'down') g += `<path d="M90 ${my + 3} Q 100 ${my - 3} 110 ${my + 3}" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+        else if (f.mouth === 'smile') g += `<path d="M88 ${my - 1} Q 100 ${my + 8} 112 ${my - 1}" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+        // glasses
+        if (cdef.glasses) {
+          g += `<circle cx="80" cy="70" r="14" fill="rgba(255,255,255,0.25)" stroke="${INK}" stroke-width="2.6"/>` +
+               `<circle cx="120" cy="70" r="14" fill="rgba(255,255,255,0.25)" stroke="${INK}" stroke-width="2.6"/>` +
+               `<line x1="94" y1="70" x2="106" y2="70" stroke="${INK}" stroke-width="2.6"/>`;
+        }
+        if (cdef.aged) {
+          g += `<path d="M70 84 Q 74 88 70 92 M130 84 Q 126 88 130 92" stroke="${G1}" stroke-width="1.5" fill="none"/>`;
+        }
+        if (cdef.streaks) {
+          g += `<path d="M76 20 C74 40 76 52 80 62 M126 22 C128 42 126 54 122 62" stroke="${G2}" stroke-width="5" fill="none" opacity="0.9"/>`;
+        }
+        if (cdef.clip) {
+          g += `<rect x="132" y="46" width="12" height="6" rx="3" fill="${RED}"/>`;
+        }
+      }
+      // hair on top
+      g += `<path d="${cdef.hairPath}" fill="${cdef.hair}" stroke="${solid ? 'none' : INK}" stroke-width="2"/>`;
+      if (cdef.fringe) g += `<path d="${cdef.fringe}" fill="${cdef.hair}"/>`;
+      // unfinished edge (Ren)
+      if (cdef.unfinished) {
+        g += `<path d="M36 84 C28 34 58 8 100 8 C142 8 172 34 164 84" fill="none" stroke="${INK}" stroke-width="1.6" stroke-dasharray="5 6" opacity="0.8"/>` +
+             `<path d="M40 210 L34 300 M160 210 L166 300" stroke="${INK}" stroke-width="1.4" stroke-dasharray="4 7" opacity="0.7"/>`;
+        if (o.redLine !== false) g += redLine(150, 190, 22, 1.2, 2);
+      }
+      // notebook (Mika)
+      if (cdef.item === 'notebook' && o.item !== false) {
+        g += `<g transform="translate(118,208) rotate(-8)"><rect x="0" y="0" width="46" height="62" rx="3" fill="${PAPER}" stroke="${INK}" stroke-width="3"/>` +
+             `<line x1="8" y1="14" x2="38" y2="14" stroke="${G2}" stroke-width="2"/><line x1="8" y1="24" x2="38" y2="24" stroke="${G2}" stroke-width="2"/><line x1="8" y1="34" x2="30" y2="34" stroke="${G2}" stroke-width="2"/>` +
+             `<rect x="0" y="0" width="8" height="62" fill="${RED}" opacity="0.85"/></g>`;
+      }
+    }
+
+    const t = [];
+    t.push(`translate(${(o.x || 0).toFixed(1)} ${(o.y || 0).toFixed(1)})`);
+    const sc = o.scale || 1;
+    t.push(`scale(${(o.flip ? -sc : sc).toFixed(3)} ${sc.toFixed(3)})`);
+    t.push('translate(-100 -150)');
+    const extraClass = o.cls || '';
+    return `<g transform="${t.join(' ')}" opacity="${o.opacity == null ? 1 : o.opacity}" ${o.id ? `id="${o.id}"` : ''} class="${extraClass}">${g}</g>`;
+  }
+
+  /* small hand for interactions */
+  function hand(x, y, angle, scale) {
+    return `<g transform="translate(${x} ${y}) rotate(${angle || 0}) scale(${scale || 1})">
+      <path d="M0 0 C-2 -14 4 -22 10 -20 C14 -19 15 -14 14 -10 L22 -12 C28 -13 31 -7 28 -2 L24 6 C20 14 10 16 4 12 C-2 8 -2 4 0 0 Z" fill="#efe9dc" stroke="${INK}" stroke-width="2.4"/>
+    </g>`;
+  }
+
+  return { svg, defs, speedlines, impactFlash, inkSplatter, rainStreaks, dust, vignette, redLine, character, hand, INK, PAPER, RED, G1, G2, G3, CHAR_DEFS };
+})();
+
+/* ============================================================
+   FRAME ZERO - 13-bg.js
+   Procedural scene backgrounds. Each returns an SVG string.
+   Signature: fn(w, h, o) where o carries scene params + rng seed.
+   ============================================================ */
+'use strict';
+FZ.bg = (function () {
+  const A = FZ.art, U = FZ.util;
+  const INK = A.INK, PAPER = A.PAPER, RED = A.RED, G1 = A.G1, G2 = A.G2, G3 = A.G3;
+
+  /* ---- archive shelving wall ---- */
+  function shelves(x, y, w, h, r, tone) {
+    let s = `<g>`;
+    const rows = Math.floor(h / 90);
+    for (let i = 0; i < rows; i++) {
+      const sy = y + i * 90;
+      s += `<rect x="${x}" y="${sy}" width="${w}" height="8" fill="${INK}"/>`;
+      let bx = x + 6;
+      while (bx < x + w - 14) {
+        const bw = 12 + r() * 22, bh = 46 + r() * 30;
+        const fill = r();
+        const col = fill < 0.45 ? G1 : fill < 0.75 ? G2 : INK;
+        s += `<rect x="${bx.toFixed(1)}" y="${(sy - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" stroke="${PAPER}" stroke-width="0.8"/>`;
+        if (r() < 0.3) s += `<rect x="${bx.toFixed(1)}" y="${(sy - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="url(#fz-tone-25)"/>`;
+        bx += bw + 2 + r() * 6;
+      }
+    }
+    s += `<rect x="${x}" y="${y - 4}" width="${w}" height="${rows * 90}" fill="url(#${tone || 'fz-tone-10'})" opacity="0.25"/>`;
+    return s + '</g>';
+  }
+
+  /* ---- window with rain ---- */
+  function windowRain(x, y, w, h, o) {
+    o = o || {};
+    let s = `<g>`;
+    s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${o.bright ? '#d8d3c6' : '#232019'}" stroke="${INK}" stroke-width="6"/>`;
+    s += `<rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${h - 12}" fill="${o.bright ? '#c9c3b4' : '#2e2a22'}"/>`;
+    // mullions
+    s += `<line x1="${x + w / 2}" y1="${y}" x2="${x + w / 2}" y2="${y + h}" stroke="${INK}" stroke-width="5"/>`;
+    s += `<line x1="${x}" y1="${y + h / 2}" x2="${x + w}" y2="${y + h / 2}" stroke="${INK}" stroke-width="5"/>`;
+    if (!o.bright) {
+      s += A.rainStreaks(w - 12, h - 12, { n: o.rainN || 34, seed: o.seed || 21, color: 'rgba(210,206,196,0.55)', cls: o.rainCls });
+    }
+    if (o.reflection) s += o.reflection;
+    s += `</g>`;
+    return s;
+  }
+
+  /* ---- archive clock reading 2:13 ---- */
+  function clock213(cx, cy, r, o) {
+    o = o || {};
+    let s = `<g>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${o.dark ? '#1c1914' : PAPER}" stroke="${INK}" stroke-width="${r * 0.09}"/>`;
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2;
+      const x1 = cx + Math.cos(a) * r * 0.82, y1 = cy + Math.sin(a) * r * 0.82;
+      const x2 = cx + Math.cos(a) * r * 0.92, y2 = cy + Math.sin(a) * r * 0.92;
+      s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${o.dark ? PAPER : INK}" stroke-width="${r * 0.035}"/>`;
+    }
+    // 2:13 -> hour hand between 2 and 3, minute at ~13min
+    const hA = ((2 + 13 / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+    const mA = (13 / 60) * Math.PI * 2 - Math.PI / 2;
+    s += `<line x1="${cx}" y1="${cy}" x2="${(cx + Math.cos(hA) * r * 0.45).toFixed(1)}" y2="${(cy + Math.sin(hA) * r * 0.45).toFixed(1)}" stroke="${o.handColor || (o.dark ? PAPER : INK)}" stroke-width="${r * 0.07}" stroke-linecap="round"/>`;
+    s += `<line x1="${cx}" y1="${cy}" x2="${(cx + Math.cos(mA) * r * 0.7).toFixed(1)}" y2="${(cy + Math.sin(mA) * r * 0.7).toFixed(1)}" stroke="${o.handColor || (o.dark ? PAPER : INK)}" stroke-width="${r * 0.05}" stroke-linecap="round"/>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="${r * 0.07}" fill="${o.dark ? PAPER : INK}"/>`;
+    if (o.red) s += `<circle cx="${cx}" cy="${cy}" r="${r + 6}" fill="none" stroke="${RED}" stroke-width="3" stroke-dasharray="6 8"/>`;
+    return s + '</g>';
+  }
+
+  /* ---- archive room, wide ---- */
+  function archiveRoom(w, h, o) {
+    o = o || {};
+    const r = U.rng(o.seed || 42);
+    let s = `<rect width="${w}" height="${h}" fill="${o.dark ? '#17140f' : '#ddd6c4'}"/>`;
+    if (!o.dark) s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-10)" opacity="0.2"/>`;
+    // floor
+    s += `<rect x="0" y="${h * 0.78}" width="${w}" height="${h * 0.22}" fill="${o.dark ? '#100e0a' : '#c7c0ad'}"/>`;
+    s += `<rect x="0" y="${h * 0.78}" width="${w}" height="6" fill="${INK}"/>`;
+    // shelves left
+    s += shelves(20, h * 0.16, w * 0.3, h * 0.62, r);
+    // shelves right
+    s += shelves(w * 0.72, h * 0.12, w * 0.26, h * 0.66, r);
+    // window back with rain
+    s += windowRain(w * 0.38, h * 0.1, w * 0.28, h * 0.4, { seed: 31, bright: o.lightsOn === false, rainN: 40 });
+    // fluorescent lamp
+    s += `<g class="${o.flicker ? 'fx-flicker' : ''}"><rect x="${w * 0.4}" y="${h * 0.02}" width="${w * 0.2}" height="10" fill="${o.lightsOn === false ? INK : '#fdfcf5'}" stroke="${INK}" stroke-width="3"/></g>`;
+    if (o.lightsOn !== false) s += `<ellipse cx="${w * 0.5}" cy="${h * 0.3}" rx="${w * 0.34}" ry="${h * 0.32}" fill="url(#fz-lamp)" opacity="0.5"/>`;
+    // desk + scanner + cup
+    const dx = w * 0.34, dy = h * 0.62, dw = w * 0.32, dh = h * 0.16;
+    s += `<rect x="${dx}" y="${dy}" width="${dw}" height="${dh}" fill="${G1}" stroke="${INK}" stroke-width="4"/>`;
+    s += `<rect x="${dx + dw * 0.08}" y="${dy - 26}" width="${dw * 0.4}" height="26" fill="${G2}" stroke="${INK}" stroke-width="3.5"/>`; // scanner
+    s += `<rect x="${dx + dw * 0.12}" y="${dy - 20}" width="${dw * 0.32}" height="8" fill="${INK}"/>`;
+    // coffee cup (position tracked for scene 3)
+    const cupX = dx + dw * 0.68, cupY = dy - 6;
+    s += `<g id="fz-cup"><rect x="${cupX}" y="${cupY - 22}" width="22" height="22" rx="3" fill="${PAPER}" stroke="${INK}" stroke-width="3"/><path d="M${cupX + 22} ${cupY - 16} q 12 2 0 12" fill="none" stroke="${INK}" stroke-width="3"/></g>`;
+    // paper stacks
+    for (let i = 0; i < 4; i++) {
+      const px = dx + dw * 0.55 + i * 8, py = dy - 30 - i * 2;
+      s += `<rect x="${px}" y="${py}" width="34" height="${6 + i}" fill="${PAPER}" stroke="${INK}" stroke-width="1.6" transform="rotate(${(r() * 6 - 3).toFixed(1)} ${px} ${py})"/>`;
+    }
+    // clock on wall
+    s += clock213(w * 0.6, h * 0.16, Math.min(w, h) * 0.055, { red: o.clockRed });
+    if (o.dust !== false) s += A.dust(w, h, { n: 34, seed: 77 });
+    s += A.vignette(w, h, o.dark ? 1.2 : 0.8);
+    return A.svg(w, h, s);
+  }
+
+  /* ---- the manuscript prop: an open page with mini panels ---- */
+  function manuscriptPage(w, h, o) {
+    o = o || {};
+    const r = U.rng(o.seed || 13);
+    let s = `<rect width="${w}" height="${h}" fill="#e9e3d3"/>`;
+    s += `<rect x="${w * 0.06}" y="${h * 0.05}" width="${w * 0.88}" height="${h * 0.9}" fill="${PAPER}" stroke="${INK}" stroke-width="4" filter="url(#fz-rough)"/>`;
+    // page fold
+    s += `<line x1="${w / 2}" y1="${h * 0.05}" x2="${w / 2}" y2="${h * 0.95}" stroke="${G2}" stroke-width="2"/>`;
+    const px = w * 0.12, py = h * 0.12, pw = w * 0.34, ph = h * 0.3;
+    const panels = o.panels || [];
+    // default mini-panel grid
+    const layout = panels.length ? panels : [
+      { x: px, y: py, w: pw, h: ph },
+      { x: px + pw + w * 0.04, y: py, w: pw, h: ph },
+      { x: px, y: py + ph + h * 0.06, w: pw, h: ph },
+      { x: px + pw + w * 0.04, y: py + ph + h * 0.06, w: pw, h: ph }
+    ];
+    layout.forEach((p, i) => {
+      s += `<g class="fz-minipanel" data-mp="${i}"><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${o.blank ? PAPER : '#e2dccb'}" stroke="${INK}" stroke-width="3" ${o.redPanel === i ? `stroke="${RED}"` : ''}/>`;
+      if (!o.blank && !panels.length) {
+        // sketchy interior
+        s += `<path d="M${p.x + 10} ${p.y + p.h * 0.7} L${p.x + p.w * 0.4} ${p.y + p.h * 0.3} L${p.x + p.w * 0.7} ${p.y + p.h * 0.6}" stroke="${G1}" stroke-width="2.5" fill="none" opacity="0.7"/>`;
+        s += `<circle cx="${p.x + p.w * 0.7}" cy="${p.y + p.h * 0.3}" r="${p.w * 0.12}" fill="url(#fz-tone-40)"/>`;
+        s += `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="url(#fz-tone-10)" opacity="0.3"/>`;
+      }
+      if (o.contents && o.contents[i]) s += o.contents[i](p);
+      s += `</g>`;
+    });
+    if (o.title) {
+      s += `<text x="${w / 2}" y="${h * 0.09}" text-anchor="middle" font-family="Comic Sans MS, cursive" font-size="${w * 0.055}" fill="${INK}" font-style="italic">${o.title}</text>`;
+    }
+    s += A.vignette(w, h, 0.6);
+    return A.svg(w, h, s);
+  }
+
+  /* ---- corridor ---- */
+  function corridor(w, h, o) {
+    o = o || {};
+    let s = `<rect width="${w}" height="${h}" fill="#14110d"/>`;
+    const vx = w / 2, vy = h * 0.42;
+    // perspective walls
+    s += `<polygon points="0,0 ${vx - w * 0.16},${vy - h * 0.18} ${vx - w * 0.16},${vy + h * 0.22} 0,${h}" fill="#211d17"/>`;
+    s += `<polygon points="${w},0 ${vx + w * 0.16},${vy - h * 0.18} ${vx + w * 0.16},${vy + h * 0.22} ${w},${h}" fill="#1c1915"/>`;
+    s += `<polygon points="0,0 ${w},0 ${vx + w * 0.16},${vy - h * 0.18} ${vx - w * 0.16},${vy - h * 0.18}" fill="#26221b"/>`;
+    s += `<polygon points="0,${h} ${w},${h} ${vx + w * 0.16},${vy + h * 0.22} ${vx - w * 0.16},${vy + h * 0.22}" fill="#0f0d0a"/>`;
+    // end door
+    s += `<rect x="${vx - w * 0.07}" y="${vy - h * 0.14}" width="${w * 0.14}" height="${h * 0.33}" fill="${o.doorLight ? '#e8e2d0' : '#0a0907'}" stroke="${INK}" stroke-width="4"/>`;
+    // perspective lines
+    for (let i = 0; i < 5; i++) {
+      const t = i / 4;
+      s += `<line x1="${w * t}" y1="0" x2="${vx + (w * 0.16) * (t * 2 - 1) * 0.2}" y2="${vy - h * 0.18}" stroke="${INK}" stroke-width="1.5" opacity="0.5"/>`;
+    }
+    // ceiling lamps
+    for (let i = 0; i < 3; i++) {
+      const t = 0.2 + i * 0.3, lx = vx, ly = h * (0.08 + i * 0.12);
+      s += `<ellipse cx="${lx}" cy="${ly}" rx="${30 - i * 8}" ry="${8 - i * 2}" fill="${o.lightsOff ? INK : '#efe9d8'}" opacity="${o.lightsOff ? 1 : 0.9 - i * 0.2}"/>`;
+    }
+    s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-25)" opacity="0.18"/>`;
+    s += A.vignette(w, h, 1.3);
+    return A.svg(w, h, s);
+  }
+
+  /* ---- underground station ---- */
+  function station(w, h, o) {
+    o = o || {};
+    const r = U.rng(o.seed || 91);
+    let s = `<rect width="${w}" height="${h}" fill="#12100c"/>`;
+    // arches
+    for (let i = 0; i < 4; i++) {
+      const ax = w * (0.08 + i * 0.28), aw = w * 0.2, ah = h * 0.5;
+      s += `<path d="M${ax} ${h} L${ax} ${h * 0.36} Q ${ax + aw / 2} ${h * 0.18} ${ax + aw} ${h * 0.36} L${ax + aw} ${h}" fill="${i % 2 ? '#191612' : '#1e1a15'}" stroke="${INK}" stroke-width="4"/>`;
+      if (o.lights !== false && i % 2 === 0) s += `<ellipse cx="${ax + aw / 2}" cy="${h * 0.3}" rx="${aw * 0.2}" ry="8" fill="#e5dfcf" opacity="0.75" class="fx-flicker"/>`;
+    }
+    // platform edge + tracks
+    s += `<rect x="0" y="${h * 0.72}" width="${w}" height="10" fill="${G2}"/>`;
+    s += `<rect x="0" y="${h * 0.76}" width="${w}" height="${h * 0.24}" fill="#0b0a08"/>`;
+    s += `<line x1="0" y1="${h * 0.84}" x2="${w}" y2="${h * 0.84}" stroke="${G1}" stroke-width="5"/>`;
+    s += `<line x1="0" y1="${h * 0.9}" x2="${w}" y2="${h * 0.9}" stroke="${G1}" stroke-width="5"/>`;
+    // torn posters
+    for (let i = 0; i < 3; i++) {
+      const px = w * (0.14 + i * 0.3), py = h * 0.42;
+      s += `<g transform="rotate(${(r() * 8 - 4).toFixed(1)} ${px} ${py})"><rect x="${px}" y="${py}" width="${w * 0.11}" height="${h * 0.2}" fill="#d9d2bf" stroke="${INK}" stroke-width="3"/>` +
+           `<path d="M${px} ${py + h * 0.2} L${px + w * 0.05} ${py + h * 0.14} L${px + w * 0.11} ${py + h * 0.2}" fill="#12100c"/>` +
+           `<rect x="${px + 6}" y="${py + 10}" width="${w * 0.11 - 12}" height="${h * 0.06}" fill="url(#fz-tone-40)"/></g>`;
+    }
+    // hanging sign
+    s += `<g class="fx-drift"><rect x="${w * 0.42}" y="${h * 0.1}" width="${w * 0.16}" height="${h * 0.07}" fill="#0d0b09" stroke="${G2}" stroke-width="2.5"/>` +
+         `<text x="${w * 0.5}" y="${h * 0.145}" text-anchor="middle" font-family="monospace" font-size="${h * 0.03}" fill="${G2}">2:13</text></g>`;
+    s += A.dust(w, h, { n: 50, seed: 5 });
+    s += A.vignette(w, h, 1.4);
+    return A.svg(w, h, s);
+  }
+
+  /* ---- unfinished city panorama ---- */
+  function unfinishedCity(w, h, o) {
+    o = o || {};
+    const r = U.rng(o.seed || 101);
+    let s = `<rect width="${w}" height="${h}" fill="#d5cfc0"/>`;
+    s += `<rect width="${w}" height="${h * 0.5}" fill="url(#fz-grad-sky)" opacity="0.5"/>`;
+    // distant half-drawn skyline
+    for (let i = 0; i < 9; i++) {
+      const bx = w * i / 9 + r() * 20, bw = w / 9 - 8, bh = h * (0.2 + r() * 0.3), by = h * 0.62 - bh;
+      const done = r();
+      if (done < 0.35) {
+        // unfinished: outline only + construction lines
+        s += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="none" stroke="${G1}" stroke-width="2.5" stroke-dasharray="8 6"/>`;
+        s += `<line x1="${bx}" y1="${by}" x2="${bx + bw}" y2="${by + bh}" stroke="${G2}" stroke-width="1.2"/>`;
+        s += `<line x1="${bx + bw}" y1="${by}" x2="${bx}" y2="${by + bh}" stroke="${G2}" stroke-width="1.2"/>`;
+      } else if (done < 0.7) {
+        s += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="url(#fz-tone-25)"/>`;
+        s += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="none" stroke="${INK}" stroke-width="2"/>`;
+      } else {
+        s += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="${G1}"/>`;
+        // missing floors
+        if (r() < 0.6) {
+          const my = by + bh * (0.3 + r() * 0.4);
+          s += `<rect x="${bx}" y="${my}" width="${bw}" height="${bh * 0.14}" fill="#d5cfc0"/>`;
+        }
+      }
+      // windows sparse
+      for (let wy = 0; wy < 3; wy++) for (let wx = 0; wx < 2; wx++) {
+        if (r() < 0.5) s += `<rect x="${bx + 8 + wx * (bw / 2 - 6)}" y="${by + 12 + wy * (bh / 3.4)}" width="${bw / 4}" height="${bh / 6}" fill="${PAPER}" opacity="0.7"/>`;
+      }
+    }
+    // ground
+    s += `<rect x="0" y="${h * 0.62}" width="${w}" height="${h * 0.38}" fill="#bdb6a4"/>`;
+    s += `<rect x="0" y="${h * 0.62}" width="${w}" height="4" fill="${INK}"/>`;
+    // floating panels in the sky
+    for (let i = 0; i < (o.floatPanels == null ? 5 : o.floatPanels); i++) {
+      const px = w * (0.1 + r() * 0.8), py = h * (0.06 + r() * 0.3), pw = 50 + r() * 80, ph = 40 + r() * 60;
+      s += `<g class="fx-drift" style="animation-delay:${(r() * 4).toFixed(1)}s" transform="rotate(${(r() * 14 - 7).toFixed(1)} ${px} ${py})" opacity="${(0.5 + r() * 0.4).toFixed(2)}">` +
+           `<rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="${PAPER}" stroke="${INK}" stroke-width="3"/>` +
+           `<rect x="${px + 5}" y="${py + 5}" width="${pw - 10}" height="${ph - 10}" fill="url(#fz-tone-10)"/></g>`;
+    }
+    // duplicated sign
+    s += `<g transform="translate(${w * 0.12} ${h * 0.5})"><rect width="120" height="34" fill="${PAPER}" stroke="${INK}" stroke-width="3"/><text x="60" y="24" text-anchor="middle" font-family="monospace" font-size="20" fill="${INK}">駅 STATION</text></g>`;
+    s += `<g transform="translate(${w * 0.14} ${h * 0.53})" opacity="0.4"><rect width="120" height="34" fill="none" stroke="${G1}" stroke-width="2" stroke-dasharray="5 4"/><text x="60" y="24" text-anchor="middle" font-family="monospace" font-size="20" fill="${G1}">駅 STATION</text></g>`;
+    s += A.dust(w, h, { n: 44, seed: 8 });
+    s += A.vignette(w, h, 0.7);
+    return A.svg(w, h, s);
+  }
+
+  /* ---- white manuscript space (ch5) ---- */
+  function whiteSpace(w, h, o) {
+    o = o || {};
+    const r = U.rng(o.seed || 201);
+    let s = `<rect width="${w}" height="${h}" fill="#f3f0e8"/>`;
+    s += `<rect width="${w}" height="${h}" fill="url(#fz-weave)" opacity="0.35"/>`;
+    // faint grid
+    for (let i = 1; i < 8; i++) {
+      s += `<line x1="${w * i / 8}" y1="0" x2="${w * i / 8}" y2="${h}" stroke="${G3}" stroke-width="0.8" opacity="0.4"/>`;
+      s += `<line x1="0" y1="${h * i / 8}" x2="${w}" y2="${h * i / 8}" stroke="${G3}" stroke-width="0.8" opacity="0.4"/>`;
+    }
+    // floating fragments
+    for (let i = 0; i < (o.fragments == null ? 8 : o.fragments); i++) {
+      const px = w * r(), py = h * r(), pw = 40 + r() * 110, ph = 30 + r() * 80;
+      s += `<g class="fx-drift" style="animation-delay:${(r() * 5).toFixed(1)}s" transform="rotate(${(r() * 24 - 12).toFixed(1)} ${px} ${py})" opacity="${(0.25 + r() * 0.5).toFixed(2)}">` +
+           `<rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="#fff" stroke="${INK}" stroke-width="2"/>` +
+           (r() < 0.5 ? `<rect x="${px + 4}" y="${py + 4}" width="${pw - 8}" height="${ph - 8}" fill="url(#fz-tone-25)"/>` : `<path d="M${px + 6} ${py + ph - 8} L${px + pw / 2} ${py + 8} L${px + pw - 8} ${py + ph / 2}" stroke="${INK}" stroke-width="1.8" fill="none"/>`) +
+           `</g>`;
+    }
+    if (o.redThreads) {
+      for (let i = 0; i < 4; i++) {
+        const y = h * (0.2 + i * 0.2);
+        s += `<path d="M0 ${y} C ${w * 0.3} ${y - 30 + r() * 60}, ${w * 0.7} ${y + 30 - r() * 60}, ${w} ${y}" stroke="${RED}" stroke-width="1.6" fill="none" opacity="0.55" stroke-dasharray="10 8"/>`;
+      }
+    }
+    return A.svg(w, h, s);
+  }
+
+  /* ---- apartment interior ---- */
+  function apartment(w, h, o) {
+    o = o || {};
+    let s = `<rect width="${w}" height="${h}" fill="#d9d2bf"/>`;
+    s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-10)" opacity="0.25"/>`;
+    s += `<rect x="0" y="${h * 0.75}" width="${w}" height="${h * 0.25}" fill="#b3ab97"/>`;
+    // table with two mugs
+    s += `<rect x="${w * 0.2}" y="${h * 0.6}" width="${w * 0.6}" height="${h * 0.05}" fill="${G1}" stroke="${INK}" stroke-width="3"/>`;
+    s += `<rect x="${w * 0.24}" y="${h * 0.65}" width="14" height="${h * 0.12}" fill="${G1}"/>`;
+    s += `<rect x="${w * 0.74}" y="${h * 0.65}" width="14" height="${h * 0.12}" fill="${G1}"/>`;
+    if (o.mugs !== 0) {
+      s += `<rect x="${w * 0.34}" y="${h * 0.545}" width="26" height="30" rx="4" fill="${PAPER}" stroke="${INK}" stroke-width="3"/>`;
+      if (o.mugs === 2 || o.mugs === 'ghost') {
+        const ghost = o.mugs === 'ghost';
+        s += `<rect x="${w * 0.58}" y="${h * 0.545}" width="26" height="30" rx="4" fill="${ghost ? 'none' : PAPER}" stroke="${ghost ? G2 : INK}" stroke-width="3" ${ghost ? 'stroke-dasharray="4 4"' : ''}/>`;
+      }
+    }
+    // framed photo on wall
+    const fw = w * 0.2, fh = h * 0.22, fx = w * 0.62, fy = h * 0.18;
+    s += `<g id="fz-photo"><rect x="${fx}" y="${fy}" width="${fw}" height="${fh}" fill="${PAPER}" stroke="${INK}" stroke-width="6"/>`;
+    if (o.photoBlank) {
+      s += `<rect x="${fx + 8}" y="${fy + 8}" width="${fw - 16}" height="${fh - 16}" fill="#e4ddcb"/>`;
+      s += `<rect x="${fx + fw * 0.3}" y="${fy + fh * 0.25}" width="${fw * 0.4}" height="${fh * 0.55}" fill="none" stroke="${G2}" stroke-width="2" stroke-dasharray="5 4"/>`;
+    } else {
+      s += `<rect x="${fx + 8}" y="${fy + 8}" width="${fw - 16}" height="${fh - 16}" fill="url(#fz-tone-25)"/>`;
+      s += `<circle cx="${fx + fw * 0.38}" cy="${fy + fh * 0.42}" r="${fw * 0.1}" fill="${INK}"/>`;
+      s += `<circle cx="${fx + fw * 0.62}" cy="${fy + fh * 0.42}" r="${fw * 0.1}" fill="${INK}"/>`;
+      s += `<path d="M${fx + fw * 0.22} ${fy + fh * 0.86} Q ${fx + fw * 0.5} ${fy + fh * 0.55} ${fx + fw * 0.78} ${fy + fh * 0.86}" stroke="${INK}" stroke-width="4" fill="${INK}"/>`;
+    }
+    s += `</g>`;
+    // door to yuna's room
+    if (o.door) {
+      s += `<rect x="${w * 0.08}" y="${h * 0.2}" width="${w * 0.16}" height="${h * 0.55}" fill="${o.doorOpen ? '#0d0b09' : G2}" stroke="${INK}" stroke-width="5"/>`;
+      if (o.doorOpen) s += `<rect x="${w * 0.1}" y="${h * 0.24}" width="${w * 0.12}" height="${h * 0.47}" fill="none" stroke="${G1}" stroke-width="1.5" stroke-dasharray="6 6" opacity="0.6"/>`;
+    }
+    s += A.dust(w, h, { n: 26, seed: 3 });
+    s += A.vignette(w, h, 0.9);
+    return A.svg(w, h, s);
+  }
+
+  /* ---- phone screen ---- */
+  function phoneScreen(w, h, o) {
+    o = o || {};
+    let s = `<rect width="${w}" height="${h}" fill="#0e0d0b"/>`;
+    s += `<rect x="${w * 0.08}" y="${h * 0.06}" width="${w * 0.84}" height="${h * 0.88}" rx="18" fill="#1c1a16" stroke="${G1}" stroke-width="3"/>`;
+    if (o.contacts) {
+      s += `<text x="${w * 0.16}" y="${h * 0.2}" font-family="monospace" font-size="${w * 0.07}" fill="${G3}">CONTACTS</text>`;
+      o.contacts.forEach((c, i) => {
+        const y = h * (0.3 + i * 0.14);
+        if (c === null) {
+          s += `<rect x="${w * 0.14}" y="${y - w * 0.05}" width="${w * 0.6}" height="${w * 0.08}" fill="none" stroke="${G1}" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+        } else {
+          s += `<circle cx="${w * 0.2}" cy="${y}" r="${w * 0.045}" fill="${G1}"/>`;
+          s += `<text x="${w * 0.3}" y="${y + w * 0.025}" font-family="monospace" font-size="${w * 0.055}" fill="${PAPER}">${c}</text>`;
+        }
+      });
+    }
+    if (o.voicemail) {
+      s += `<text x="${w * 0.16}" y="${h * 0.24}" font-family="monospace" font-size="${w * 0.06}" fill="${G3}">VOICEMAIL</text>`;
+      s += `<text x="${w * 0.16}" y="${h * 0.38}" font-family="monospace" font-size="${w * 0.05}" fill="${PAPER}">1 new message</text>`;
+      s += `<text x="${w * 0.16}" y="${h * 0.5}" font-family="monospace" font-size="${w * 0.05}" fill="${RED}">from: ▯▯▯▯▯</text>`;
+      s += `<g class="fx-flicker">${[0,1,2,3,4,5,6].map(i => `<rect x="${w * (0.16 + i * 0.09)}" y="${h * 0.6}" width="${w * 0.05}" height="${h * (0.04 + Math.random() * 0.12)}" fill="${G2}"/>`).join('')}</g>`;
+    }
+    return A.svg(w, h, s);
+  }
+
+  /* ---- CCTV frame ---- */
+  function cctv(w, h, o) {
+    o = o || {};
+    let s = `<rect width="${w}" height="${h}" fill="#101210"/>`;
+    s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-10)" opacity="0.4"/>`;
+    // scanlines
+    for (let y = 0; y < h; y += 6) s += `<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="rgba(0,0,0,0.35)" stroke-width="2"/>`;
+    // corridor view
+    s += `<polygon points="0,${h} ${w * 0.35},${h * 0.3} ${w * 0.65},${h * 0.3} ${w},${h}" fill="#1d1f1b"/>`;
+    s += `<line x1="${w * 0.35}" y1="${h * 0.3}" x2="0" y2="${h}" stroke="${G2}" stroke-width="2"/>`;
+    s += `<line x1="${w * 0.65}" y1="${h * 0.3}" x2="${w}" y2="${h}" stroke="${G2}" stroke-width="2"/>`;
+    if (o.figure) {
+      s += `<g class="fx-flicker" opacity="0.9"><ellipse cx="${w * 0.5}" cy="${h * 0.44}" rx="${w * 0.045}" ry="${w * 0.045}" fill="${PAPER}"/>` +
+           `<path d="M${w * 0.5} ${h * 0.48} L${w * 0.44} ${h * 0.72} L${w * 0.56} ${h * 0.72} Z" fill="${PAPER}"/></g>`;
+    }
+    s += `<text x="${w * 0.05}" y="${h * 0.1}" font-family="monospace" font-size="${w * 0.055}" fill="${G3}">CAM 04 - ARCHIVE</text>`;
+    s += `<text x="${w * 0.05}" y="${h * 0.17}" font-family="monospace" font-size="${w * 0.05}" fill="${o.timeRed ? RED : G3}">${o.time || '02:13:07'}</text>`;
+    s += `<circle cx="${w * 0.92}" cy="${h * 0.09}" r="${w * 0.02}" fill="${RED}" class="fx-flicker"/>`;
+    return A.svg(w, h, s);
+  }
+
+  /* ---- black panel with text (title cards inside story) ---- */
+  function textPanel(w, h, o) {
+    o = o || {};
+    let s = `<rect width="${w}" height="${h}" fill="${o.bg || '#0d0b09'}"/>`;
+    if (o.lines) {
+      const fs = o.fontSize || w * 0.09;
+      o.lines.forEach((ln, i) => {
+        s += `<text x="${w / 2}" y="${h * (o.startY || 0.42) + i * fs * 1.4}" text-anchor="middle" font-family="${o.mono ? 'monospace' : 'Georgia, serif'}" font-size="${fs}" fill="${ln.red ? RED : (o.fg || PAPER)}" letter-spacing="${o.spacing || 4}" ${ln.cls ? `class="${ln.cls}"` : ''}>${ln.t}</text>`;
+      });
+    }
+    if (o.tone) s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-25)" opacity="0.3"/>`;
+    return A.svg(w, h, s);
+  }
+
+  /* ---- seven death panels strip ---- */
+  function sevenPanels(w, h, o) {
+    o = o || {};
+    let inner = '';
+    const pw = w * 0.72, ph = h * 0.09;
+    for (let i = 0; i < 7; i++) {
+      const y = h * 0.06 + i * (ph + h * 0.025);
+      inner += `<g class="fz-seven-cell" data-cell="${i}">
+        <rect x="${w * 0.2}" y="${y}" width="${pw}" height="${ph}" fill="${o.dark ? '#14110d' : PAPER}" stroke="${INK}" stroke-width="3"/>
+        <text x="${w * 0.14}" y="${y + ph * 0.68}" text-anchor="middle" font-family="monospace" font-size="${ph * 0.5}" fill="${o.dark ? PAPER : INK}">0${i + 1}</text>
+      </g>`;
+    }
+    return { frame: inner, cellY: i => h * 0.06 + i * (ph + h * 0.025), cellH: ph, cellX: w * 0.2, cellW: pw };
+  }
+
+  return { archiveRoom, manuscriptPage, corridor, station, unfinishedCity, whiteSpace, apartment, phoneScreen, cctv, textPanel, clock213, windowRain, shelves, sevenPanels };
+})();
+
+/* ============================================================
+   FRAME ZERO - 14-engine.js
+   Core runtime: stage/camera, panels, dialogue, particles,
+   screen FX, interaction, save/settings/perf, story engine.
+   ============================================================ */
+'use strict';
+FZ.engine = (function () {
+  const U = FZ.util;
+  const PAGE_W = 1000, PAGE_H = 1500;
+
+  /* ============ SAVE ============ */
+  const Save = {
+    data: null,
+    load() {
+      this.data = U.loadSave() || {
+        v: 1, unlockedCh: 1, ch: 1, sceneIdx: 0,
+        clues: {}, settings: {}, ending: null, finished: false, startedAt: Date.now()
+      };
+      return this.data;
+    },
+    save(patch) {
+      if (patch) Object.assign(this.data, patch);
+      U.storeSave(this.data);
+      U.bus.emit('save:updated', this.data);
+    },
+    addClue(id) {
+      if (!this.data.clues[id]) {
+        this.data.clues[id] = Date.now();
+        this.save();
+        U.bus.emit('clue:added', id);
+        return true;
+      }
+      return false;
+    },
+    hasClue(id) { return !!this.data.clues[id]; },
+    clueCount() { return Object.keys(this.data.clues).length; },
+    wipe() { U.wipeSave(); this.load(); }
+  };
+
+  /* ============ SETTINGS ============ */
+  const Settings = {
+    defs: {
+      sound: { def: true }, volume: { def: 0.8 }, textSpeed: { def: 'normal' },
+      perf: { def: 'auto' }, motion: { def: 'full' }, captions: { def: true }
+    },
+    values: {},
+    init(saved) {
+      for (const k in this.defs) {
+        this.values[k] = (saved && saved[k] !== undefined) ? saved[k] : this.defs[k].def;
+      }
+      if (U.prefersReducedMotion() && !(saved && saved.motion)) this.values.motion = 'reduced';
+      this.apply();
+    },
+    set(k, v) {
+      this.values[k] = v;
+      Save.data.settings = this.values;
+      Save.save();
+      this.apply();
+    },
+    apply() {
+      const v = this.values;
+      FZ.audio.setMuted(!v.sound);
+      FZ.audio.setVolume(v.volume);
+      document.body.classList.toggle('motion-reduced', v.motion === 'reduced');
+      Perf.setMode(v.perf);
+      U.bus.emit('settings:applied', v);
+    }
+  };
+
+  /* ============ PERFORMANCE ============ */
+  const Perf = {
+    tier: 'high', mode: 'auto', fps: 60,
+    particleCap() { return this.tier === 'low' ? 30 : this.tier === 'high' ? 90 : 140; },
+    setMode(mode) {
+      this.mode = mode;
+      if (mode === 'auto') {
+        const mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8;
+        this.tier = (mem <= 4 || cores <= 4) ? 'low' : 'high';
+      } else if (mode === 'low') this.tier = 'low';
+      else if (mode === 'high') this.tier = 'high';
+      else if (mode === 'cinematic') this.tier = 'cinematic';
+    },
+    get heavyFilters() { return this.tier !== 'low'; }
+  };
+
+  /* ============ CAMERA ============ */
+  const Camera = {
+    x: PAGE_W / 2, y: PAGE_H / 2, z: 1, r: 0, base: 1,
+    el: null, tweenId: 0,
+    init(el) {
+      this.el = el;
+      window.addEventListener('resize', () => this.fit());
+      this.fit();
+    },
+    fit() {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      this.base = Math.min(vw / PAGE_W, vh / PAGE_H);
+      this.apply();
+    },
+    apply() {
+      if (!this.el) return;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const s = this.base * this.z;
+      this.el.style.transform =
+        `translate(${vw / 2}px, ${vh / 2}px) rotate(${this.r}deg) scale(${s}) translate(${-this.x}px, ${-this.y}px)`;
+    },
+    snapTo(x, y, z, r) {
+      this.tweenId++;
+      this.x = x != null ? x : this.x; this.y = y != null ? y : this.y;
+      this.z = z != null ? z : this.z; this.r = r != null ? r : this.r;
+      this.apply();
+    },
+    move(o) {
+      // o: {x,y,z,r,dur,ease}
+      const self = this;
+      const id = ++this.tweenId;
+      const dur = (Settings.values.motion === 'reduced') ? Math.min(o.dur || 600, 60) : (o.dur || 600);
+      const e = U.ease[o.ease || 'inOut'];
+      const sx = this.x, sy = this.y, sz = this.z, sr = this.r;
+      const tx = o.x != null ? o.x : sx, ty = o.y != null ? o.y : sy,
+            tz = o.z != null ? o.z : sz, tr = o.r != null ? o.r : sr;
+      if (dur <= 16) { this.snapTo(tx, ty, tz, tr); return Promise.resolve(); }
+      return new Promise(res => {
+        const t0 = performance.now();
+        (function step(now) {
+          if (id !== self.tweenId) return res(); // superseded
+          let t = (now - t0) / dur;
+          if (Engine.skipAll) t = 1;
+          if (t >= 1) { self.snapTo(tx, ty, tz, tr); return res(); }
+          const k = e(t);
+          self.x = U.lerp(sx, tx, k); self.y = U.lerp(sy, ty, k);
+          self.z = U.lerp(sz, tz, k); self.r = U.lerp(sr, tr, k);
+          self.apply();
+          requestAnimationFrame(step);
+        })(t0);
+      });
+    }
+  };
+
+  /* ============ PANELS ============ */
+  const Panels = {
+    layer: null, map: {},
+    init(layer) { this.layer = layer; },
+    clear() { if (this.layer) this.layer.innerHTML = ''; this.map = {}; },
+    add(o) {
+      // o: {id, x,y,w,h, art (svg string), border, cls, z, opacity}
+      const d = U.el('div', 'panel ' + (o.cls || ''), this.layer, { role: 'img', 'aria-label': o.aria || o.id || 'panel' });
+      d.style.left = o.x + 'px'; d.style.top = o.y + 'px';
+      d.style.width = o.w + 'px'; d.style.height = o.h + 'px';
+      if (o.z) d.style.zIndex = o.z;
+      if (o.border === 'thin') d.classList.add('ink-thin');
+      else if (o.border === 'heavy') d.classList.add('ink-heavy');
+      else if (o.border === 'none') d.classList.add('no-border');
+      else if (o.border === 'red') d.classList.add('red-border');
+      else if (o.border === 'broken') d.classList.add('broken-border');
+      if (o.art) d.innerHTML = o.art;
+      if (o.html) d.innerHTML += o.html;
+      const p = { id: o.id, el: d, o };
+      if (o.id) this.map[o.id] = p;
+      return p;
+    },
+    show(p, anim, dur) {
+      if (typeof p === 'string') p = this.map[p];
+      if (!p) return U.wait(0);
+      p.el.style.display = '';
+      p.el.classList.add('visible');
+      if (anim) {
+        p.el.classList.remove('anim-fade', 'anim-left', 'anim-right', 'anim-up', 'anim-slam', 'anim-iris');
+        void p.el.offsetWidth;
+        p.el.classList.add('anim-' + anim);
+      }
+      if (dur) p.el.style.animationDuration = dur + 'ms';
+      return U.wait(Settings.values.motion === 'reduced' ? 30 : (dur || 420));
+    },
+    hide(p, fadeMs) {
+      if (typeof p === 'string') p = this.map[p];
+      if (!p) return U.wait(0);
+      p.el.style.transition = `opacity ${fadeMs || 300}ms ease`;
+      p.el.style.opacity = '0';
+      const el = p.el;
+      return U.wait(fadeMs || 300).then(() => { el.classList.remove('visible'); el.style.display = 'none'; el.style.transition = ''; });
+    },
+    setArt(p, svg) {
+      if (typeof p === 'string') p = this.map[p];
+      if (p) p.el.innerHTML = svg;
+    },
+    transform(p, t, dur) {
+      if (typeof p === 'string') p = this.map[p];
+      if (!p) return U.wait(0);
+      p.el.style.transition = dur ? `transform ${dur}ms cubic-bezier(.3,.7,.3,1), opacity ${dur}ms ease` : '';
+      if (t) p.el.style.transform = t;
+      return U.wait(dur || 0);
+    }
+  };
+
+  /* ============ DIALOGUE ============ */
+  const Dialogue = {
+    layer: null, current: [], typeToken: 0,
+    init(layer) { this.layer = layer; },
+    clearAll() {
+      this.typeToken++;
+      this.current.forEach(b => b.remove());
+      this.current = [];
+    },
+    /* o: {who,text,style,x,y,w,tail,keep}  x,y = tail anchor in stage coords */
+    say(o) {
+      const self = this;
+      const token = ++this.typeToken;
+      const b = U.el('div', 'bubble ' + (o.style || '') + (o.tail ? ' tail-' + o.tail : ''), this.layer);
+      const inner = U.el('div', 'b-inner', b);
+      if (o.who) U.el('span', 'who', b, { text: o.who });
+      if (o.style !== 'narr' && o.style !== 'sys' && !o.noTail) U.el('div', 'tail', b);
+      this.current.push(b);
+      if (this.current.length > 3) { const old = this.current.shift(); old.style.transition = 'opacity 400ms'; old.style.opacity = '0'; setTimeout(() => old.remove(), 420); }
+      // position: bubble bottom-center at (x,y)
+      const bw = o.w || 340;
+      b.style.width = bw + 'px';
+      b.style.left = U.clamp(o.x - bw / 2, 16, PAGE_W - bw - 16) + 'px';
+      b.style.top = '0px';
+      const speed = Settings.values.textSpeed === 'slow' ? 34 : Settings.values.textSpeed === 'fast' ? 10 : 20;
+      const plain = o.text;
+      FZ.ui && FZ.ui.caption(o.who ? o.who + ': ' + plain : plain);
+      return new Promise(res => {
+        const finish = (txt) => {
+          inner.innerHTML = txt;
+          // measure + place above anchor
+          const bh = b.offsetHeight || 100;
+          b.style.top = U.clamp(o.y - bh - 34, 12, PAGE_H - bh - 12) + 'px';
+          res(b);
+        };
+        if (Settings.values.motion === 'reduced' || !plain) return finish(U.escapeHtml(plain || ''));
+        const chars = Array.from(plain);
+        let i = 0;
+        inner.textContent = '';
+        const bh0 = 60; b.style.top = U.clamp(o.y - bh0 - 34, 12, PAGE_H) + 'px';
+        (function tick() {
+          if (token !== self.typeToken) return finish(U.escapeHtml(plain));
+          if (Engine.skipAll) return finish(U.escapeHtml(plain));
+          i++;
+          inner.textContent = chars.slice(0, i).join('');
+          if (i % 3 === 0) FZ.audio.sfx.tap && FZ.audio.started && null; // (type clicks kept silent by design)
+          if (i >= chars.length) return finish(U.escapeHtml(plain));
+          setTimeout(tick, speed);
+        })();
+      });
+    },
+    captionNarr(text, x, y, w, style) {
+      return this.say({ text, x, y, w: w || 460, style: style || 'narr', noTail: true });
+    }
+  };
+
+  /* ============ PARTICLES (canvas overlay in stage space) ============ */
+  const Particles = {
+    canvas: null, ctx: null, items: [], mode: null, raf: 0, running: false,
+    init(canvas) {
+      this.canvas = canvas;
+      canvas.width = PAGE_W; canvas.height = PAGE_H;
+      this.ctx = canvas.getContext('2d');
+    },
+    setMode(mode, opts) {
+      this.mode = mode; this.opts = opts || {};
+      this.items.length = 0;
+      if (!mode) { this.stop(); this.clearFrame(); return; }
+      const cap = Perf.particleCap();
+      const U_ = U;
+      if (mode === 'rain') {
+        const n = Math.floor(cap * 0.9);
+        for (let i = 0; i < n; i++) this.items.push({
+          k: 'rain', x: Math.random() * PAGE_W, y: Math.random() * PAGE_H,
+          v: 9 + Math.random() * 7, len: 16 + Math.random() * 26, drift: 1.6 + Math.random()
+        });
+      } else if (mode === 'dust') {
+        const n = Math.floor(cap * 0.4);
+        for (let i = 0; i < n; i++) this.items.push({
+          k: 'dust', x: Math.random() * PAGE_W, y: Math.random() * PAGE_H,
+          vx: (Math.random() - 0.5) * 0.3, vy: -0.05 - Math.random() * 0.2, r: 0.8 + Math.random() * 2, a: 0.1 + Math.random() * 0.3
+        });
+      } else if (mode === 'ink') {
+        const n = Math.floor(cap * 0.3);
+        for (let i = 0; i < n; i++) this.items.push({
+          k: 'ink', x: Math.random() * PAGE_W, y: -20 - Math.random() * PAGE_H,
+          v: 1 + Math.random() * 2.4, r: 1 + Math.random() * 3.4
+        });
+      } else if (mode === 'snow-paper') {
+        const n = Math.floor(cap * 0.5);
+        for (let i = 0; i < n; i++) this.items.push({
+          k: 'paper', x: Math.random() * PAGE_W, y: Math.random() * PAGE_H,
+          v: 0.4 + Math.random() * 0.9, sway: Math.random() * 2 * Math.PI, r: 2 + Math.random() * 5, rot: Math.random() * 360
+        });
+      }
+      this.start();
+    },
+    start() {
+      if (this.running) return;
+      this.running = true;
+      const loop = () => {
+        if (!this.running) return;
+        this.frame();
+        this.raf = requestAnimationFrame(loop);
+      };
+      this.raf = requestAnimationFrame(loop);
+    },
+    stop() { this.running = false; cancelAnimationFrame(this.raf); },
+    clearFrame() { if (this.ctx) this.ctx.clearRect(0, 0, PAGE_W, PAGE_H); },
+    frame() {
+      const c = this.ctx;
+      c.clearRect(0, 0, PAGE_W, PAGE_H);
+      const reduced = Settings.values.motion === 'reduced';
+      for (const p of this.items) {
+        if (p.k === 'rain') {
+          c.strokeStyle = 'rgba(226,222,210,0.5)';
+          c.lineWidth = 1.4;
+          c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.drift * 2, p.y + p.len); c.stroke();
+          if (!reduced) { p.y += p.v; p.x -= p.drift; }
+          if (p.y > PAGE_H + 30) { p.y = -30; p.x = Math.random() * (PAGE_W + 100); }
+        } else if (p.k === 'dust') {
+          c.fillStyle = `rgba(150,144,132,${p.a})`;
+          c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill();
+          if (!reduced) { p.x += p.vx; p.y += p.vy; }
+          if (p.y < -6) { p.y = PAGE_H + 6; p.x = Math.random() * PAGE_W; }
+        } else if (p.k === 'ink') {
+          c.fillStyle = 'rgba(22,19,15,0.75)';
+          c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill();
+          if (!reduced) p.y += p.v;
+          if (p.y > PAGE_H + 10) { p.y = -10; p.x = Math.random() * PAGE_W; }
+        } else if (p.k === 'paper') {
+          c.save(); c.translate(p.x, p.y); c.rotate(p.rot * 0.017);
+          c.fillStyle = 'rgba(242,238,227,0.8)';
+          c.fillRect(-p.r, -p.r * 0.7, p.r * 2, p.r * 1.4);
+          c.strokeStyle = 'rgba(22,19,15,0.6)'; c.lineWidth = 0.8;
+          c.strokeRect(-p.r, -p.r * 0.7, p.r * 2, p.r * 1.4);
+          c.restore();
+          if (!reduced) { p.y += p.v; p.sway += 0.01; p.x += Math.sin(p.sway) * 0.5; p.rot += 0.3; }
+          if (p.y > PAGE_H + 12) { p.y = -12; p.x = Math.random() * PAGE_W; }
+        }
+      }
+    }
+  };
+
+  /* ============ SCREEN FX ============ */
+  const FX = {
+    layers: {},
+    init(root, shakeWrap) {
+      ['flash-red', 'flash-white', 'blackout', 'static-noise'].forEach(k => {
+        const d = U.el('div', 'screenfx ' + k, root);
+        this.layers[k] = d;
+      });
+      this.shakeWrap = shakeWrap;
+    },
+    flash(kind, ms) {
+      const l = this.layers[kind]; if (!l) return U.wait(0);
+      l.classList.add('on');
+      if (kind === 'flash-red') FZ.audio.sfx.impact();
+      return U.wait(ms || 180).then(() => l.classList.remove('on'));
+    },
+    blackout(on, slow) {
+      const l = this.layers['blackout'];
+      l.classList.toggle('fade-slow', !!slow);
+      l.classList.toggle('on', on);
+      return U.wait(slow ? 1450 : 120);
+    },
+    whiteout(on, slow) {
+      const l = this.layers['flash-white'];
+      l.classList.toggle('fade-slow', !!slow);
+      l.classList.toggle('on', on);
+      return U.wait(slow ? 1450 : 160);
+    },
+    staticNoise(on) { this.layers['static-noise'].classList.toggle('on', on); },
+    shake(ms) {
+      this.shakeWrap.classList.remove('shaking');
+      void this.shakeWrap.offsetWidth;
+      this.shakeWrap.classList.add('shaking');
+      FZ.audio.sfx.impact();
+      return U.wait(Settings.values.motion === 'reduced' ? 60 : (ms || 500));
+    }
+  };
+
+  /* ============ INTERACTION / HOTZONES ============ */
+  const Interact = {
+    layer: null, zones: [],
+    init(layer) { this.layer = layer; },
+    clear() { if (this.layer) this.layer.innerHTML = ''; this.zones = []; },
+    /* o: {id,x,y,w,h, hint, holdMs, onTap, onHold, cursor} */
+    add(o) {
+      const z = U.el('div', 'hotzone' + (o.hint ? ' hint' : ''), this.layer, { role: 'button', 'aria-label': o.aria || o.id || 'interactive area', tabindex: '0' });
+      z.style.left = o.x + 'px'; z.style.top = o.y + 'px';
+      z.style.width = o.w + 'px'; z.style.height = o.h + 'px';
+      z.style.cursor = o.cursor || 'pointer';
+      U.el('div', 'hz-ring', z);
+      let holdTimer = null, held = false;
+      const start = (ev) => {
+        if (o.holdMs) {
+          held = false;
+          holdTimer = setTimeout(() => { held = true; o.onHold && o.onHold(ev); }, o.holdMs);
+        }
+      };
+      const end = (ev) => {
+        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+        if (o.holdMs && held) return;
+        if (o.onTap) o.onTap(ev);
+      };
+      z.addEventListener('pointerdown', start);
+      z.addEventListener('pointerup', end);
+      z.addEventListener('pointercancel', () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } });
+      z.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); o.onTap && o.onTap(ev); } });
+      this.zones.push(z);
+      return z;
+    },
+    remove(z) { if (z && z.remove) z.remove(); }
+  };
+
+  /* ============ STORY ENGINE ============ */
+  const Engine = {
+    scenes: {}, order: [], currentScene: null, beatIdx: -1,
+    playing: false, skipAll: false, paused: false, advanceLock: false,
+    tapResolve: null, sceneAbort: null,
+
+    register(scene) { this.scenes[scene.id] = scene; this.order.push(scene.id); },
+
+    ctxFor(scene) {
+      return {
+        scene,
+        addPanel: o => Panels.add(o),
+        panel: id => Panels.map[id],
+        show: (p, a, d) => Panels.show(p, a, d),
+        hide: (p, d) => Panels.hide(p, d),
+        setArt: (p, s) => Panels.setArt(p, s),
+        transform: (p, t, d) => Panels.transform(p, t, d),
+        say: o => Dialogue.say(o),
+        narr: (t, x, y, w, s) => Dialogue.captionNarr(t, x, y, w, s),
+        clearDialogue: () => Dialogue.clearAll(),
+        cam: o => Camera.move(o),
+        camSnap: (x, y, z, r) => Camera.snapTo(x, y, z, r),
+        sfx: n => { if (FZ.audio.sfx[n]) FZ.audio.sfx[n](); },
+        amb: (n, arg) => { if (FZ.audio.amb[n]) FZ.audio.amb[n](arg); },
+        particles: (m, o) => Particles.setMode(m, o),
+        fx: FX,
+        hotzone: o => Interact.add(o),
+        clue: id => Save.addClue(id),
+        hasClue: id => Save.hasClue(id),
+        wait: ms => Engine.wait(ms),
+        tap: () => Engine.waitTap(),
+        audio: FZ.audio,
+        save: Save.data,
+        page: document.getElementById('fz-page'),
+        ui: FZ.ui
+      };
+    },
+
+    wait(ms) {
+      const real = Settings.values.motion === 'reduced' ? Math.min(ms, 120) : ms;
+      return new Promise(res => {
+        const t0 = performance.now();
+        const iv = setInterval(() => {
+          if (this.skipAll || performance.now() - t0 >= real) { clearInterval(iv); res(); }
+        }, 40);
+      });
+    },
+
+    waitTap() {
+      return new Promise(res => { this.tapResolve = res; FZ.ui.showNextHint(true); })
+        .then(() => { FZ.ui.showNextHint(false); });
+    },
+
+    advance() {
+      if (this.paused) return;
+      FZ.audio.start();
+      if (this.tapResolve) { const r = this.tapResolve; this.tapResolve = null; r(); return; }
+      // otherwise: skip current timed beat
+      this.skipAll = true;
+      setTimeout(() => { this.skipAll = false; }, 60);
+    },
+
+    async playScene(id, opts) {
+      const scene = this.scenes[id];
+      if (!scene) { console.error('[FZ] unknown scene', id); return; }
+      // teardown previous
+      if (this.sceneAbort) this.sceneAbort.aborted = true;
+      const abort = { aborted: false };
+      this.sceneAbort = abort;
+      this.currentScene = scene; this.beatIdx = -1;
+      this.playing = true;
+      Dialogue.clearAll();
+      Interact.clear();
+      Panels.clear();
+      Particles.setMode(null);
+      FZ.ui.setProgress(this.progressOf(scene));
+      FZ.ui.setChapterLabel(scene.ch, scene.chapterTitle);
+      document.getElementById('fz-page').classList.toggle('ch5space', scene.ch >= 5);
+      Save.save({ ch: scene.ch, sceneIdx: this.chapterSceneIndex(scene) });
+      const ctx = this.ctxFor(scene);
+      try {
+        if (scene.enter) await scene.enter(ctx);
+        if (scene.beats) {
+          for (let i = 0; i < scene.beats.length; i++) {
+            if (abort.aborted) return;
+            this.beatIdx = i;
+            U.bus.emit('debug:beat', { scene: id, beat: i });
+            await this.runBeat(scene.beats[i], ctx);
+          }
+        }
+        if (abort.aborted) return;
+        if (scene.autoNext) {
+          this.goto(scene.next);
+        } else {
+          await this.waitTap();
+          if (abort.aborted) return;
+          this.goto(typeof scene.next === 'function' ? scene.next(ctx) : scene.next);
+        }
+      } catch (e) {
+        console.error('[FZ scene error]', id, e);
+      }
+    },
+
+    async runBeat(b, ctx) {
+      if (typeof b === 'function') return b(ctx);
+      if (!b || !b.t) return;
+      switch (b.t) {
+        case 'cam': return ctx.cam(b);
+        case 'camSnap': return ctx.camSnap(b.x, b.y, b.z, b.r);
+        case 'show': return ctx.show(b.panel, b.anim, b.dur);
+        case 'hide': return ctx.hide(b.panel, b.dur);
+        case 'say': return ctx.say(b);
+        case 'narr': return ctx.narr(b.text, b.x, b.y, b.w, b.style);
+        case 'clearDlg': return ctx.clearDialogue();
+        case 'sfx': return ctx.sfx(b.name);
+        case 'amb': return ctx.amb(b.name, b.arg);
+        case 'particles': return ctx.particles(b.mode, b.opts);
+        case 'wait': return ctx.wait(b.ms);
+        case 'tap': return ctx.tap();
+        case 'anim': { const p = Panels.map[b.panel]; if (p) p.el.classList.add('fx-' + b.fx); return; }
+        case 'unanim': { const p = Panels.map[b.panel]; if (p) p.el.classList.remove('fx-' + b.fx); return; }
+        case 'art': return Panels.setArt(b.panel, b.art);
+        case 'ptransform': return Panels.transform(b.panel, b.transform, b.dur);
+        case 'fx':
+          if (b.name === 'shake') return FX.shake(b.ms);
+          if (b.name === 'flash-red') return FX.flash('flash-red', b.ms);
+          if (b.name === 'flash-white') return FX.flash('flash-white', b.ms);
+          if (b.name === 'blackout') return FX.blackout(b.on !== false, b.slow);
+          if (b.name === 'whiteout') return FX.whiteout(b.on !== false, b.slow);
+          if (b.name === 'static') return FX.staticNoise(b.on !== false);
+          return;
+        case 'clue': { if (Save.addClue(b.id)) FZ.ui.clueToast(b.id); return; }
+        case 'fn': return b.run(ctx);
+        case 'title': return FZ.ui.chapterCard(b.chn, b.text, b.holdMs);
+        case 'corrupt': { FZ.audio.setCorruption(b.v); if (b.v >= 0.8) FZ.ui.infect(2); else if (b.v >= 0.5) FZ.ui.infect(1); return; }
+        case 'ui': return FZ.ui.infect(b.level);
+        default: console.warn('[FZ] unknown beat', b.t);
+      }
+    },
+
+    chapterSceneIndex(scene) {
+      const chScenes = this.order.map(s => this.scenes[s]).filter(s => s.ch === scene.ch);
+      return chScenes.findIndex(s => s.id === scene.id);
+    },
+    progressOf(scene) {
+      const chScenes = this.order.map(s => this.scenes[s]).filter(s => s.ch === scene.ch);
+      const i = chScenes.findIndex(s => s.id === scene.id);
+      return chScenes.length ? i / chScenes.length : 0;
+    },
+
+    goto(sceneId) {
+      if (!sceneId) { FZ.ui.showEndCard(); return; }
+      this.playScene(sceneId);
+    },
+    nextScene() {
+      const i = this.order.indexOf(this.currentScene && this.currentScene.id);
+      if (i >= 0 && i < this.order.length - 1) this.goto(this.order[i + 1]);
+      else FZ.ui.showEndCard();
+    },
+    prevScene() {
+      const i = this.order.indexOf(this.currentScene && this.currentScene.id);
+      if (i > 0) this.goto(this.order[i - 1]);
+    },
+    pause(on) {
+      this.paused = on;
+      document.getElementById('fz-pause-veil').classList.toggle('on', on);
+    }
+  };
+
+  return { Save, Settings, Perf, Camera, Panels, Dialogue, Particles, FX, Interact, Engine, PAGE_W, PAGE_H };
+})();
+
+/* ============================================================
+   FRAME ZERO - 15-ui.js
+   UI chrome: top/bottom bars, overlays (title/settings/clues/
+   chapters), chapter cards, choice UI, captions, debug.
+   ============================================================ */
+'use strict';
+FZ.ui = (function () {
+  const U = FZ.util;
+  const E = () => FZ.engine;
+
+  const CHAPTER_TITLES = {
+    1: 'THE PAGE THAT WASN\u2019T DRAWN',
+    2: 'THE BOY BETWEEN PANELS',
+    3: 'THE ERASED CITY',
+    4: 'SEVEN VERSIONS OF MIKA',
+    5: 'FRAME ZERO'
+  };
+
+  const CLUE_BOOK = {
+    'clock-213': { name: '2:13', desc: 'The archive clock never moved. You watched it not move, five times. It noticed.' },
+    'hidden-eye': { name: 'The Drawn Eye', desc: 'Held against the light, the manuscript page hides a second drawing: an eye, sketched and re-sketched, never finished.' },
+    'cup-moved': { name: 'The Cup Moved Twice', desc: 'You moved the cup. The drawing agreed. You moved it back. The drawing had already agreed.' },
+    'photo-space': { name: 'The Blank Space', desc: 'The family photograph has room for a third person. The wall has a lighter rectangle where dust never settled.' },
+    'cctv-ghost': { name: 'CAM 04 Anomaly', desc: 'He exists on frames 113 through 118. He does not exist on any frame before or after. The timestamp never changes.' },
+    'voicemail': { name: 'Voicemail From Nobody', desc: 'One saved message. No sender. Seven seconds of rain, and a woman saying a name you almost remember.' },
+    'city-panel': { name: 'Discarded Composition', desc: 'A panel floating over the erased city shows your street - drawn from an angle nobody could photograph.' },
+    'yuna-letter': { name: 'Yuna\u2019s Margin Note', desc: '"The Editor cannot create a person from nothing." The handwriting is hers. The ink is still wet.' },
+    'seven-tapped': { name: 'All Seven', desc: 'You spoke to every version. Only one of them looked back at you, specifically.' },
+    'red-line': { name: 'The Red Line', desc: 'A hairline of crimson under your fingernail. It was there before the reset. It is still there now.' },
+    'ui-awake': { name: 'The Interface Is Listening', desc: 'You touched the parts of the frame that are not part of the story. They answered.' },
+    'predrawn-choice': { name: 'Already Drawn', desc: 'The manuscript showed the button being pressed before you pressed it.' }
+  };
+
+  let els = {};
+  let infectLevel = 0;
+
+  function build() {
+    const root = document.getElementById('fz-root');
+    // UI chrome
+    const ui = U.el('div', '', root, { id: 'fz-ui' });
+    ui.innerHTML = `
+      <div class="ui-top">
+        <div id="fz-chapter-label">FRAME ZERO</div>
+        <div id="fz-progress-wrap">
+          <div id="fz-progress-bar"><div id="fz-progress-fill"></div></div>
+        </div>
+      </div>
+      <div class="ui-bottom">
+        <div class="ui-nav">
+          <button class="fz-btn" id="fz-prev" aria-label="Previous scene">&#9664;</button>
+        </div>
+        <div class="ui-nav">
+          <button class="fz-btn primary" id="fz-next" aria-label="Continue">NEXT &#9654;</button>
+        </div>
+      </div>
+      <div class="ui-right">
+        <button class="fz-icon-btn" id="fz-clue-btn" aria-label="Discovered clues"><svg viewBox="0 0 24 24"><path d="M12 2 L22 12 L12 22 L2 12 Z"/><circle cx="12" cy="12" r="3"/></svg><span id="fz-clue-count">0</span></button>
+        <button class="fz-icon-btn" id="fz-sound" aria-label="Toggle sound"><svg viewBox="0 0 24 24"><path d="M11 5 6 9 H3 v6 h3 l5 4 Z"/><path class="snd-waves" d="M15 9 q3 3 0 6 M18 6 q5 6 0 12"/></svg></button>
+        <button class="fz-icon-btn" id="fz-pause-btn" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M8 5 v14 M16 5 v14"/></svg></button>
+        <button class="fz-icon-btn" id="fz-settings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12 a7 7 0 0 0 -.1-1.2 l2-1.6 -2-3.4 -2.4 1 a7 7 0 0 0 -2-1.2 L14 3 h-4 l-.5 2.6 a7 7 0 0 0 -2 1.2 l-2.4-1 -2 3.4 2 1.6 A7 7 0 0 0 5 12 c0 .4 0 .8 .1 1.2 l-2 1.6 2 3.4 2.4-1 a7 7 0 0 0 2 1.2 L10 21 h4 l.5-2.6 a7 7 0 0 0 2-1.2 l2.4 1 2-3.4 -2-1.6 c.07-.4.1-.8.1-1.2 Z"/></svg></button>
+      </div>
+      <div id="fz-next-hint">TAP TO CONTINUE</div>`;
+    els.ui = ui;
+
+    // pause veil, caption line, chapter card, choice
+    root.insertAdjacentHTML('beforeend', `
+      <div id="fz-pause-veil">PAUSED</div>
+      <div id="fz-caption-line" role="status" aria-live="polite"></div>
+      <div id="fz-chapter-card"><div class="chn"></div><div class="cht"></div><div class="rule"></div></div>
+      <div id="fz-choice"><div class="choice-prompt"></div><div class="choice-list"></div></div>
+      <div id="fz-debug"></div>`);
+
+    // overlays: title, settings, clues, chapters
+    root.insertAdjacentHTML('beforeend', `
+      <div class="fz-overlay" id="fz-title-screen">
+        <svg id="fz-title-art" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <pattern id="tt-tone" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="1.9" fill="#16130f"/></pattern>
+          </defs>
+          <rect x="40" y="20" width="320" height="240" fill="#f2eee3" stroke="#16130f" stroke-width="8"/>
+          <rect x="64" y="44" width="130" height="90" fill="url(#tt-tone)" stroke="#16130f" stroke-width="4"/>
+          <rect x="208" y="44" width="128" height="44" fill="#f2eee3" stroke="#16130f" stroke-width="4"/>
+          <rect x="208" y="100" width="128" height="34" fill="none" stroke="#16130f" stroke-width="4" stroke-dasharray="7 6"/>
+          <rect x="64" y="148" width="272" height="88" fill="#f2eee3" stroke="#16130f" stroke-width="4"/>
+          <circle cx="120" cy="192" r="26" fill="#16130f"/>
+          <line x1="170" y1="180" x2="316" y2="180" stroke="#16130f" stroke-width="5"/>
+          <line x1="170" y1="196" x2="300" y2="196" stroke="#16130f" stroke-width="5"/>
+          <line x1="170" y1="212" x2="312" y2="212" stroke="#16130f" stroke-width="5"/>
+          <line x1="60" y1="255" x2="340" y2="255" stroke="#a4161a" stroke-width="3"/>
+          <circle cx="336" cy="40" r="7" fill="none" stroke="#a4161a" stroke-width="3"/>
+        </svg>
+        <div id="fz-title-word">FRAME <span class="rz">ZERO</span></div>
+        <div id="fz-title-sub">AN INTERACTIVE ANIMATED MANGA</div>
+        <div id="fz-title-menu">
+          <button class="fz-btn primary" id="fz-begin">BEGIN</button>
+          <button class="fz-btn" id="fz-continue" style="display:none">CONTINUE</button>
+          <button class="fz-btn" id="fz-title-chapters">CHAPTERS</button>
+          <button class="fz-btn" id="fz-title-settings">SETTINGS</button>
+        </div>
+        <div id="fz-title-foot">HEADPHONES RECOMMENDED - SOUND STARTS AFTER FIRST TAP</div>
+      </div>
+      <div class="fz-overlay hidden" id="fz-settings-overlay" role="dialog" aria-label="Settings">
+        <h2>SETTINGS</h2>
+        <div class="panel-box">
+          <div class="set-row"><label>Sound</label><div class="seg" id="set-sound">
+            <button class="fz-btn" data-v="on">ON</button><button class="fz-btn" data-v="off">OFF</button></div></div>
+          <div class="set-row"><label>Volume</label><input type="range" class="fz-range" id="set-volume" min="0" max="100" step="5" aria-label="Volume"></div>
+          <div class="set-row"><label>Text speed</label><div class="seg" id="set-textspeed">
+            <button class="fz-btn" data-v="slow">SLOW</button><button class="fz-btn" data-v="normal">NORMAL</button><button class="fz-btn" data-v="fast">FAST</button></div></div>
+          <div class="set-row"><label>Motion</label><div class="seg" id="set-motion">
+            <button class="fz-btn" data-v="full">FULL</button><button class="fz-btn" data-v="reduced">REDUCED</button></div></div>
+          <div class="set-row"><label>Performance</label><div class="seg" id="set-perf">
+            <button class="fz-btn" data-v="auto">AUTO</button><button class="fz-btn" data-v="low">LOW</button><button class="fz-btn" data-v="high">HIGH</button><button class="fz-btn" data-v="cinematic">CINEMATIC</button></div></div>
+          <div class="set-row"><label>Audio captions</label><div class="seg" id="set-captions">
+            <button class="fz-btn" data-v="on">ON</button><button class="fz-btn" data-v="off">OFF</button></div></div>
+          <div class="set-row"><label>Progress</label><div class="seg">
+            <button class="fz-btn" id="set-wipe">ERASE SAVE</button></div></div>
+        </div>
+        <div style="height:26px"></div>
+        <button class="fz-btn" id="fz-settings-close">CLOSE</button>
+      </div>
+      <div class="fz-overlay hidden" id="fz-clues-overlay" role="dialog" aria-label="Discovered clues">
+        <h2>DISCOVERED CLUES</h2>
+        <div class="panel-box" id="fz-clues-list"></div>
+        <div style="height:26px"></div>
+        <button class="fz-btn" id="fz-clues-close">CLOSE</button>
+      </div>
+      <div class="fz-overlay hidden" id="fz-chapters-overlay" role="dialog" aria-label="Chapters">
+        <h2>CHAPTERS</h2>
+        <div class="panel-box" id="fz-chapters-list"></div>
+        <div style="height:26px"></div>
+        <button class="fz-btn" id="fz-chapters-close">CLOSE</button>
+      </div>`);
+
+    wire();
+  }
+
+  function wire() {
+    const $ = U.$;
+    $('#fz-next').addEventListener('click', () => E().Engine.advance());
+    $('#fz-prev').addEventListener('click', () => { E().Engine.prevScene(); });
+    $('#fz-sound').addEventListener('click', () => {
+      FZ.audio.start();
+      E().Settings.set('sound', !E().Settings.values.sound);
+      refreshSoundIcon();
+    });
+    $('#fz-pause-btn').addEventListener('click', () => E().Engine.pause(!E().Engine.paused));
+    $('#fz-settings').addEventListener('click', () => openSettings());
+    $('#fz-clue-btn').addEventListener('click', () => openClues());
+    $('#fz-settings-close').addEventListener('click', closeOverlays);
+    $('#fz-clues-close').addEventListener('click', closeOverlays);
+    $('#fz-chapters-close').addEventListener('click', closeOverlays);
+    $('#fz-begin').addEventListener('click', () => { FZ.audio.start(); closeOverlays(); E().Engine.goto('ch1_s1'); });
+    $('#fz-continue').addEventListener('click', () => {
+      FZ.audio.start(); closeOverlays();
+      const d = E().Save.data;
+      const target = FZ.story.sceneAt(d.ch, d.sceneIdx) || 'ch1_s1';
+      E().Engine.goto(target);
+    });
+    $('#fz-title-chapters').addEventListener('click', () => openChapters());
+    $('#fz-title-settings').addEventListener('click', () => openSettings());
+    $('#set-wipe').addEventListener('click', () => {
+      E().Save.wipe();
+      E().Settings.init(E().Save.data.settings);
+      syncSettingsUI(); refreshClueCount();
+      $('#fz-continue').style.display = 'none';
+    });
+
+    // settings segmented controls
+    const seg = (id, key, parse) => {
+      U.$$('#' + id + ' .fz-btn').forEach(b => b.addEventListener('click', () => {
+        let v = b.dataset.v;
+        if (parse) v = parse(v);
+        E().Settings.set(key, v);
+        syncSettingsUI();
+      }));
+    };
+    seg('set-sound', 'sound', v => v === 'on');
+    seg('set-textspeed', 'textSpeed');
+    seg('set-motion', 'motion');
+    seg('set-perf', 'perf');
+    seg('set-captions', 'captions', v => v === 'on');
+    $('#set-volume').addEventListener('input', ev => E().Settings.set('volume', ev.target.value / 100));
+
+    // stage tap = advance (but not on hotzones/buttons)
+    document.getElementById('fz-viewport').addEventListener('pointerup', (ev) => {
+      if (ev.target.closest('.hotzone, .fz-btn, .fz-icon-btn, .choice-opt, .fz-overlay')) return;
+      ripple(ev.clientX, ev.clientY);
+      E().Engine.advance();
+    });
+
+    // keyboard
+    window.addEventListener('keydown', (ev) => {
+      if (ev.target.matches('input,textarea')) return;
+      if (ev.key === 'ArrowRight' || ev.key === ' ') { ev.preventDefault(); E().Engine.advance(); }
+      else if (ev.key === 'ArrowLeft') E().Engine.prevScene();
+      else if (ev.key === 'p' || ev.key === 'P') E().Engine.pause(!E().Engine.paused);
+      else if (ev.key === 'm' || ev.key === 'M') $('#fz-sound').click();
+      else if (ev.key === 'Escape') closeOverlays();
+    });
+
+    U.bus.on('clue:added', refreshClueCount);
+  }
+
+  function ripple(cx, cy) {
+    const root = document.getElementById('fz-root');
+    const r = U.el('div', 'tap-ripple', root);
+    r.style.left = (cx - 18) + 'px'; r.style.top = (cy - 18) + 'px';
+    r.style.width = '36px'; r.style.height = '36px';
+    setTimeout(() => r.remove(), 600);
+  }
+
+  /* ---------- chrome state ---------- */
+  function setChapterLabel(ch, title) {
+    U.$('#fz-chapter-label').textContent = 'CH ' + ch + ' \u2014 ' + (title || CHAPTER_TITLES[ch] || '');
+  }
+  function setProgress(f) {
+    U.$('#fz-progress-fill').style.width = Math.round(f * 100) + '%';
+  }
+  function showNextHint(on) {
+    const h = U.$('#fz-next-hint');
+    if (h) h.style.opacity = on ? '1' : '0';
+  }
+  function refreshSoundIcon() {
+    U.$('#fz-sound').classList.toggle('off', !FZ.engine.Settings.values.sound);
+  }
+  function refreshClueCount() {
+    U.$('#fz-clue-count').textContent = FZ.engine.Save.clueCount();
+  }
+  function caption(text) {
+    if (!FZ.engine.Settings.values.captions || !text) return;
+    const c = U.$('#fz-caption-line');
+    c.textContent = text;
+    c.classList.add('on');
+    clearTimeout(c._t);
+    c._t = setTimeout(() => c.classList.remove('on'), 3200);
+  }
+  function clueToast(id) {
+    const c = CLUE_BOOK[id];
+    caption('CLUE FOUND \u2014 ' + (c ? c.name : id));
+    FZ.audio.sfx.chime();
+    refreshClueCount();
+  }
+  function chapterCard(chn, title, holdMs) {
+    const card = U.$('#fz-chapter-card');
+    card.querySelector('.chn').textContent = chn;
+    card.querySelector('.cht').textContent = title;
+    card.classList.add('on');
+    FZ.audio.sfx.pageTurn();
+    return U.wait(holdMs || 2600).then(() => {
+      card.classList.remove('on');
+      return U.wait(750);
+    });
+  }
+
+  /* ---------- overlays ---------- */
+  function closeOverlays() {
+    U.$$('.fz-overlay').forEach(o => o.classList.add('hidden'));
+  }
+  function openSettings() {
+    syncSettingsUI();
+    U.$('#fz-settings-overlay').classList.remove('hidden');
+  }
+  function openClues() {
+    const list = U.$('#fz-clues-list');
+    list.innerHTML = '';
+    for (const id in CLUE_BOOK) {
+      const c = CLUE_BOOK[id];
+      const got = FZ.engine.Save.hasClue(id);
+      const d = U.el('div', 'clue-item' + (got ? '' : ' locked'), list);
+      U.el('div', 'clue-name', d, { text: got ? c.name : '???' });
+      U.el('div', 'clue-desc', d, { text: got ? c.desc : 'Undiscovered.' });
+    }
+    U.$('#fz-clues-overlay').classList.remove('hidden');
+  }
+  function openChapters() {
+    const list = U.$('#fz-chapters-list');
+    list.innerHTML = '';
+    const unlocked = FZ.engine.Save.data.unlockedCh;
+    for (let ch = 1; ch <= 5; ch++) {
+      const open = ch <= unlocked;
+      const b = U.el('button', 'fz-btn chapter-item' + (open ? '' : ' locked'), list);
+      b.innerHTML = `<span><span class="chn">0${ch}</span> ${open ? CHAPTER_TITLES[ch] : '??????'}</span><span class="st">${open ? (ch < unlocked ? 'READ' : 'CURRENT') : 'SEALED'}</span>`;
+      if (open) b.addEventListener('click', () => {
+        closeOverlays();
+        U.$('#fz-title-screen').classList.add('hidden');
+        FZ.audio.start();
+        FZ.engine.Engine.goto(FZ.story.sceneAt(ch, 0));
+      });
+    }
+    U.$('#fz-chapters-overlay').classList.remove('hidden');
+  }
+  function syncSettingsUI() {
+    const v = FZ.engine.Settings.values;
+    const mark = (id, val) => U.$$('#' + id + ' .fz-btn').forEach(b => b.classList.toggle('sel', b.dataset.v === String(val)));
+    mark('set-sound', v.sound ? 'on' : 'off');
+    mark('set-textspeed', v.textSpeed);
+    mark('set-motion', v.motion);
+    mark('set-perf', v.perf);
+    mark('set-captions', v.captions ? 'on' : 'off');
+    U.$('#set-volume').value = Math.round(v.volume * 100);
+  }
+
+  /* ---------- title screen ---------- */
+  function showTitle() {
+    const d = FZ.engine.Save.data;
+    const has = d.unlockedCh > 1 || d.sceneIdx > 0 || d.ch > 1;
+    U.$('#fz-continue').style.display = has ? '' : 'none';
+    U.$('#fz-title-screen').classList.remove('hidden');
+    refreshClueCount();
+    refreshSoundIcon();
+  }
+
+  /* ---------- choice (endings) ---------- */
+  function showChoice(prompt, options) {
+    return new Promise(res => {
+      const box = U.$('#fz-choice');
+      box.querySelector('.choice-prompt').textContent = prompt;
+      const list = box.querySelector('.choice-list');
+      list.innerHTML = '';
+      options.forEach(o => {
+        const b = U.el('button', 'choice-opt' + (o.predrawn ? ' predrawn' : ''), list);
+        b.innerHTML = `<div class="co-label">${U.escapeHtml(o.label)}</div><div class="co-sub">${U.escapeHtml(o.sub || '')}</div>`;
+        b.addEventListener('click', () => {
+          box.classList.remove('on');
+          FZ.audio.sfx.impact();
+          res(o.id);
+        });
+      });
+      box.classList.add('on');
+    });
+  }
+
+  /* ---------- end card ---------- */
+  function showEndCard() {
+    const d = FZ.engine.Save.data;
+    const endName = d.ending === 'publish' ? 'PUBLISHED' : d.ending === 'erase' ? 'ERASED' : d.ending === 'unfinished' ? 'LEFT UNFINISHED' : null;
+    chapterCard(endName ? 'ENDING \u2014 ' + endName : 'FRAME ZERO', endName ? 'The page turns without you.' : '', 3000).then(showTitle);
+  }
+
+  /* ---------- UI infection (ch4/5) ---------- */
+  function infect(level) {
+    infectLevel = Math.max(infectLevel, level);
+    const ui = els.ui;
+    ui.classList.toggle('infected', infectLevel >= 1);
+    ui.classList.toggle('possessed', infectLevel >= 2);
+  }
+  function hideChrome(on) { els.ui.classList.toggle('hidden', on); }
+
+  /* ---------- debug ---------- */
+  const Debug = {
+    on: false, frames: 0, lastT: 0, fps: 0, info: {},
+    init() {
+      this.on = /[?&]debug=1/.test(location.search);
+      if (!this.on) return;
+      document.body.classList.add('fz-debug');
+      const tick = (t) => {
+        this.frames++;
+        if (t - this.lastT >= 500) {
+          this.fps = Math.round(this.frames * 1000 / (t - this.lastT));
+          this.frames = 0; this.lastT = t;
+          this.render();
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(t => { this.lastT = t; tick(t); });
+      U.bus.on('debug:beat', b => { this.info = b; });
+    },
+    render() {
+      const d = U.$('#fz-debug');
+      const e = FZ.engine;
+      const sc = e.Engine.currentScene;
+      d.textContent =
+        `FPS ${this.fps} | DPR ${window.devicePixelRatio} | tier ${e.Perf.tier} | audio ${FZ.audio.state}\n` +
+        `scene ${sc ? sc.id : '-'} beat ${e.Engine.beatIdx} | clues ${e.Save.clueCount()}`;
+    }
+  };
+
+  return {
+    build, showTitle, setChapterLabel, setProgress, showNextHint, caption, clueToast,
+    chapterCard, showChoice, showEndCard, closeOverlays, openSettings, openChapters, openClues,
+    infect, hideChrome, refreshClueCount, refreshSoundIcon, ripple, Debug, CHAPTER_TITLES, CLUE_BOOK
+  };
+})();
+
+/* ============================================================
+   FRAME ZERO - CHAPTER 1
+   THE PAGE THAT WASN'T DRAWN
+   Traditional manga grammar, restrained motion. 11 major scenes.
+   ============================================================ */
+'use strict';
+(function () {
+  const A = FZ.art, B = FZ.bg, S = FZ.story;
+  const INK = A.INK, PAPER = A.PAPER, RED = A.RED, G1 = A.G1, G2 = A.G2, G3 = A.G3;
+  const CH = 'THE PAGE THAT WASN\u2019T DRAWN';
+
+  // art helpers -------------------------------------------------
+  function mikaPanel(w, h, expr, o) {
+    o = o || {};
+    let s = `<rect width="${w}" height="${h}" fill="${o.bg || '#ddd6c4'}"/>`;
+    if (o.tone !== false) s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-10)" opacity="0.22"/>`;
+    if (o.lines) s += A.speedlines(w, h, { cx: w * 0.5, cy: h * 0.46, n: o.lines, seed: 14, thick: 2.2 });
+    s += A.character({ who: 'mika', expr: expr || 'tired', x: w * (o.x || 0.5), y: h * (o.y || 0.62), scale: o.scale || Math.min(w / 260, h / 380), flip: o.flip, item: o.item, blink: o.blink });
+    s += A.vignette(w, h, o.vign == null ? 0.7 : o.vign);
+    return A.svg(w, h, s);
+  }
+  function renPanel(w, h, expr, o) {
+    o = o || {};
+    let s = `<rect width="${w}" height="${h}" fill="${o.bg || '#16130f'}"/>`;
+    if (o.tone !== false) s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-40)" opacity="0.3"/>`;
+    s += A.character({ who: 'ren', expr: expr || 'neutral', x: w * (o.x || .5), y: h * (o.y || .6), scale: o.scale || Math.min(w / 250, h / 380), flip: o.flip, cls: o.cls || '' });
+    s += A.vignette(w, h, 1.1);
+    return A.svg(w, h, s);
+  }
+  function eyeCloseup(w, h, o) {
+    o = o || {};
+    let s = `<rect width="${w}" height="${h}" fill="${PAPER}"/>`;
+    s += `<path d="M${w*.08} ${h*.52} Q${w*.5} ${h*.14} ${w*.92} ${h*.52} Q${w*.5} ${h*.9} ${w*.08} ${h*.52} Z" fill="#fff" stroke="${INK}" stroke-width="9"/>`;
+    s += `<ellipse cx="${w*.5}" cy="${h*.53}" rx="${h*.18}" ry="${h*.24}" fill="${o.hollow ? INK : '#fff'}" stroke="${INK}" stroke-width="6"/>`;
+    if (!o.hollow) {
+      s += `<circle cx="${w*.5}" cy="${h*.53}" r="${h*.09}" fill="${INK}"/>`;
+      s += `<circle cx="${w*.47}" cy="${h*.46}" r="${h*.025}" fill="#fff"/>`;
+    }
+    s += `<path d="M0 ${h*.26} Q${w*.5} ${-h*.04} ${w} ${h*.24}" fill="url(#fz-hatch-45)" stroke="${INK}" stroke-width="4"/>`;
+    if (o.red) s += A.redLine(w*.28, h*.78, w*.44, -.02, 3.5);
+    s += A.vignette(w,h,.7);
+    return A.svg(w,h,s);
+  }
+  function yunaDoor(w,h,o) {
+    o=o||{};
+    let s=`<rect width="${w}" height="${h}" fill="#17140f"/>`;
+    s += `<rect x="${w*.18}" y="${h*.06}" width="${w*.64}" height="${h*.88}" fill="${o.light?'#ddd6c4':'#242019'}" stroke="${INK}" stroke-width="8"/>`;
+    s += A.character({who:'yuna',expr:o.expr||'scared',x:w*.5,y:h*.62,scale:Math.min(w/230,h/360),item:false,cls:'fx-flicker'});
+    if(o.run) s += `<text x="${w*.5}" y="${h*.88}" text-anchor="middle" font-family="Impact, sans-serif" font-size="${w*.15}" fill="${RED}" letter-spacing="8">RUN.</text>`;
+    s += A.vignette(w,h,1.3);
+    return A.svg(w,h,s);
+  }
+  function manuscriptMiniArchive(w,h,cupOffset,ren) {
+    let s=`<rect width="${w}" height="${h}" fill="${PAPER}"/>`;
+    s += `<rect x="${w*.07}" y="${h*.07}" width="${w*.86}" height="${h*.86}" fill="#dfd8c7" stroke="${INK}" stroke-width="5"/>`;
+    s += `<rect x="${w*.12}" y="${h*.18}" width="${w*.24}" height="${h*.52}" fill="url(#fz-tone-25)" stroke="${INK}" stroke-width="3"/>`;
+    s += `<rect x="${w*.48}" y="${h*.5}" width="${w*.36}" height="${h*.18}" fill="${G1}" stroke="${INK}" stroke-width="3"/>`;
+    const cx=w*.67+(cupOffset||0), cy=h*.47;
+    s += `<rect x="${cx}" y="${cy}" width="${w*.06}" height="${h*.1}" fill="${PAPER}" stroke="${INK}" stroke-width="3"/>`;
+    if(ren) s += A.character({who:'ren',expr:'neutral',x:w*.42,y:h*.53,scale:Math.min(w/500,h/540),opacity:.9});
+    s += `<path d="M${w*.48} ${h*.22} Q${w*.65} ${h*.13} ${w*.82} ${h*.22}" stroke="${G2}" stroke-width="2" fill="none"/>`;
+    s += A.dust(w,h,{n:18,seed:21});
+    return A.svg(w,h,s);
+  }
+
+  /* S1: Closing time ------------------------------------------ */
+  S.add({ id:'ch1_s1', ch:1, chapterTitle:CH, next:'ch1_s2',
+    enter: async c => {
+      c.camSnap(500,750,1,0);
+      await c.fx.blackout(true);
+    },
+    beats:[
+      {t:'title', chn:'CHAPTER 01', text:CH, holdMs:2600},
+      c=>{ c.addPanel({id:'wide',x:52,y:90,w:896,h:540,art:B.archiveRoom(896,540,{seed:10,flicker:true}),aria:'Mika alone in a rain-soaked archive'}); },
+      {t:'fx',name:'blackout',on:false,slow:true},
+      {t:'show',panel:'wide',anim:'fade',dur:900},
+      {t:'amb',name:'rainHum'}, {t:'particles',mode:'dust'},
+      {t:'cam',x:500,y:360,z:1.12,dur:1200,ease:'out'},
+      {t:'narr',text:'SOME STORIES SURVIVE BY BEING REMEMBERED.',x:500,y:1040,w:660},
+      {t:'wait',ms:1500},
+      c=>{ c.addPanel({id:'mika',x:66,y:672,w:448,h:670,art:mikaPanel(448,670,'tired',{scale:1.45,y:.63}),aria:'Mika restores damaged manga pages'}); c.addPanel({id:'hands',x:540,y:672,w:394,h:290,art:(()=>{let w=394,h=290,s=`<rect width="${w}" height="${h}" fill="#d8d1c0"/><rect x="35" y="40" width="324" height="205" fill="${PAPER}" stroke="${INK}" stroke-width="5"/><path d="M65 180 C110 150 150 80 205 75 C260 70 285 120 330 105" stroke="${INK}" stroke-width="3" fill="none"/><rect x="48" y="54" width="120" height="100" fill="url(#fz-tone-25)" stroke="${INK}" stroke-width="2"/>`;s+=A.hand(106,230,-30,1.4)+A.hand(305,225,25,1.4);s+=A.vignette(w,h,.5);return A.svg(w,h,s)})(),aria:'Mika repairing torn manuscript paper'}); },
+      {t:'show',panel:'mika',anim:'left',dur:700},
+      {t:'show',panel:'hands',anim:'right',dur:700},
+      {t:'clearDlg'},
+      {t:'say',who:'MIKA',text:'One more page. Then I go home.',x:690,y:1165,w:320,tail:'left',style:'thought'},
+      {t:'wait',ms:1100},
+      c=>{ c.addPanel({id:'clock',x:540,y:988,w:394,h:354,art:A.svg(394,354,`<rect width="394" height="354" fill="#d4cdbb"/><rect width="394" height="354" fill="url(#fz-tone-10)" opacity=".25"/>${B.clock213(197,177,105,{})}${A.vignette(394,354,.5)}`),aria:'Archive clock stopped at 2:13'}); },
+      {t:'show',panel:'clock',anim:'up',dur:600},
+      {t:'cam',x:737,y:1165,z:1.5,dur:900,ease:'inOut'},
+      {t:'sfx',name:'clockTick'},
+      {t:'clearDlg'},
+      {t:'say',who:'MIKA',text:'...2:13?',x:600,y:1250,w:250,tail:'right',style:'thought'},
+      c=>{
+        let taps=0;
+        c.hotzone({id:'clock-secret',x:550,y:1000,w:375,h:325,aria:'Inspect the stopped clock',hint:true,onTap:()=>{
+          taps++; FZ.audio.sfx.clockTick();
+          const p=c.panel('clock'); p.el.classList.remove('fx-pulse-red'); void p.el.offsetWidth;
+          if(taps>=5){ p.el.classList.add('fx-pulse-red'); if(c.clue('clock-213')) c.ui.clueToast('clock-213'); }
+        }});
+      },
+      {t:'tap'}
+    ]
+  });
+
+  /* S2: uncatalogued box -------------------------------------- */
+  S.add({ id:'ch1_s2', ch:1, chapterTitle:CH, next:'ch1_s3', beats:[
+    c=>{c.camSnap(500,750,1,0); c.addPanel({id:'aisle',x:52,y:70,w:896,h:610,art:B.corridor(896,610,{doorLight:false}),aria:'A narrow aisle behind the archive shelves'}); c.addPanel({id:'box',x:72,y:720,w:520,h:650,art:(()=>{let w=520,h=650,s=`<rect width="${w}" height="${h}" fill="#beb5a2"/><rect width="${w}" height="${h}" fill="url(#fz-tone-25)" opacity=".22"/><g transform="translate(80 110) rotate(-4 180 200)"><path d="M0 90 L360 50 L400 360 L40 410 Z" fill="#8e816b" stroke="${INK}" stroke-width="8"/><path d="M0 90 L180 140 L360 50" fill="#a99c83" stroke="${INK}" stroke-width="7"/><path d="M180 140 L210 410" stroke="${INK}" stroke-width="6"/><rect x="100" y="180" width="210" height="110" fill="#ddd4c0" stroke="${INK}" stroke-width="5"/><line x1="130" y1="225" x2="280" y2="225" stroke="${G2}" stroke-width="5"/><line x1="130" y1="250" x2="250" y2="250" stroke="${G2}" stroke-width="5"/><path d="M85 80 L185 20 L350 50" fill="#a99c83" stroke="${INK}" stroke-width="7"/></g>${A.dust(w,h,{n:34,seed:61})}${A.vignette(w,h,.8)}`;return A.svg(w,h,s)})(),aria:'An uncatalogued cardboard box behind a shelf'}); c.addPanel({id:'tag',x:620,y:720,w:308,h:300,art:A.svg(308,300,`<rect width="308" height="300" fill="${PAPER}"/><rect x="50" y="45" width="208" height="190" fill="#e5decb" stroke="${INK}" stroke-width="6"/><text x="154" y="118" text-anchor="middle" font-family="monospace" font-size="28" fill="${INK}">INVENTORY</text><rect x="80" y="145" width="148" height="48" fill="none" stroke="${INK}" stroke-width="3"/><text x="154" y="180" text-anchor="middle" font-family="monospace" font-size="34" fill="${RED}">—</text>`),aria:'Blank inventory label'});},
+    {t:'show',panel:'aisle',anim:'fade',dur:700},{t:'show',panel:'box',anim:'up',dur:700},{t:'show',panel:'tag',anim:'right',dur:650},
+    {t:'amb',name:'rainHum'},{t:'particles',mode:'dust'},
+    {t:'narr',text:'THE GAP BEHIND SHELF C-17 SHOULD NOT HAVE BEEN WIDE ENOUGH FOR A BOX.',x:500,y:1460,w:820},
+    {t:'wait',ms:1600},{t:'clearDlg'},{t:'say',who:'MIKA',text:'No catalogue number.',x:728,y:1070,w:300,tail:'left'},
+    {t:'tap'}
+  ]});
+
+  /* S3: title / impossible room drawing ----------------------- */
+  S.add({ id:'ch1_s3', ch:1, chapterTitle:CH, next:'ch1_s4', beats:[
+    c=>{c.camSnap(500,750,1,0); c.addPanel({id:'titlepage',x:70,y:80,w:860,h:1280,art:B.manuscriptPage(860,1280,{blank:true,title:'FRAME ZERO'}),aria:'A mostly blank manuscript titled FRAME ZERO'});},
+    {t:'show',panel:'titlepage',anim:'iris',dur:900},{t:'sfx',name:'pageTurn'},{t:'amb',name:'hum'},
+    {t:'cam',x:500,y:360,z:1.45,dur:1100,ease:'out'},
+    {t:'say',who:'MIKA',text:'FRAME ZERO...',x:690,y:420,w:320,tail:'left',style:'thought'},
+    {t:'wait',ms:1100},{t:'clearDlg'},
+    {t:'narr',text:'THE TITLE LOOKED HANDWRITTEN.',x:500,y:1040,w:520},
+    {t:'narr',text:'THE INK WAS STILL WET.',x:500,y:1190,w:520,style:'narr red'},
+    c=>{c.hotzone({id:'title-hold',x:270,y:140,w:460,h:230,aria:'Hold the title page to the light',hint:true,holdMs:900,onHold:()=>{
+      const p=c.panel('titlepage');
+      const overlay=document.createElement('div'); overlay.style.cssText='position:absolute;inset:0;background:rgba(255,255,230,.8);z-index:5;mix-blend-mode:screen;'; p.el.appendChild(overlay);
+      const eye=document.createElement('div'); eye.style.cssText='position:absolute;left:230px;top:390px;width:400px;height:250px;opacity:.35;z-index:6;'; eye.innerHTML=eyeCloseup(400,250,{hollow:false}); p.el.appendChild(eye);
+      if(c.clue('hidden-eye')) c.ui.clueToast('hidden-eye');
+      setTimeout(()=>{overlay.style.opacity='0';eye.style.opacity='.12'},1200);
+    },onTap:()=>FZ.audio.sfx.paperRustle()});},
+    {t:'tap'}
+  ]});
+
+  /* S4: impossible panel, move the cup ------------------------ */
+  S.add({ id:'ch1_s4', ch:1, chapterTitle:CH, next:'ch1_s5', beats:[
+    c=>{ c.camSnap(500,750,1,0); c.addPanel({id:'real',x:54,y:80,w:892,h:560,art:B.archiveRoom(892,560,{seed:20,flicker:true}),aria:'The real archive'}); c.addPanel({id:'drawn',x:54,y:690,w:892,h:670,art:manuscriptMiniArchive(892,670,0,false),aria:'The manuscript drawing of the archive'}); },
+    {t:'show',panel:'real',anim:'fade',dur:700},{t:'show',panel:'drawn',anim:'up',dur:700},{t:'amb',name:'rainHum'},{t:'particles',mode:'rain'},
+    {t:'narr',text:'THE DRAWING WAS OLD. THE ROOM WAS OLDER.',x:500,y:680,w:620},
+    {t:'wait',ms:1200},{t:'clearDlg'},
+    {t:'cam',x:500,y:1000,z:1.18,dur:900,ease:'out'},
+    {t:'say',who:'MIKA',text:'My chair. The scanner. The window...',x:295,y:1260,w:340,tail:'right',style:'thought'},
+    {t:'wait',ms:1200},{t:'clearDlg'},
+    {t:'say',who:'MIKA',text:'...my coffee.',x:700,y:1160,w:250,tail:'left',style:'thought'},
+    c=>{
+      const p=c.panel('drawn'); let moved=false;
+      c.hotzone({id:'drawn-cup',x:585,y:930,w:190,h:190,aria:'Move the coffee cup in the drawing',hint:true,onTap:()=>{
+        moved=!moved; FZ.audio.sfx.paperRustle();
+        c.setArt(p,manuscriptMiniArchive(892,670,moved?120:0,false));
+        const cup=document.querySelector('#fz-cup'); if(cup) cup.style.transform=moved?'translateX(92px)':'';
+        if(moved){ FZ.audio.sfx.glitch(1); c.fx.flash('flash-red',100); if(c.clue('cup-moved'))c.ui.clueToast('cup-moved'); }
+      }});
+    },
+    {t:'tap'}
+  ]});
+
+  /* S5: the prediction / countdown ---------------------------- */
+  S.add({ id:'ch1_s5', ch:1, chapterTitle:CH, next:'ch1_s6', beats:[
+    c=>{c.camSnap(500,750,1,0); c.addPanel({id:'pred',x:70,y:85,w:860,h:420,art:A.svg(860,420,`<rect width="860" height="420" fill="${PAPER}"/><rect width="860" height="420" fill="url(#fz-tone-10)" opacity=".2"/><text x="430" y="140" text-anchor="middle" font-family="Georgia, serif" font-size="34" fill="${INK}">THE LIGHT ABOVE YOU WILL GO OUT</text><text x="430" y="218" text-anchor="middle" font-family="Georgia, serif" font-size="58" fill="${RED}">IN THREE SECONDS.</text>${A.inkSplatter(860,420,{cx:430,cy:340,n:12,maxR:5,spread:180,seed:5})}`),aria:'The manuscript predicts the light will go out in three seconds'}); c.addPanel({id:'eyes',x:70,y:555,w:860,h:310,art:eyeCloseup(860,310,{red:true}),aria:'Mika stares up in alarm'}); c.addPanel({id:'num',x:70,y:915,w:860,h:420,art:B.textPanel(860,420,{lines:[{t:'3'}],fontSize:220,startY:.68}),aria:'Countdown'});},
+    {t:'show',panel:'pred',anim:'slam',dur:500},{t:'sfx',name:'glitch'},{t:'show',panel:'eyes',anim:'up',dur:500},{t:'sfx',name:'heartbeat'},
+    {t:'wait',ms:900},{t:'show',panel:'num',anim:'fade',dur:200},{t:'sfx',name:'clockTick'},{t:'wait',ms:800},
+    c=>c.setArt('num',B.textPanel(860,420,{lines:[{t:'2'}],fontSize:220,startY:.68})),{t:'sfx',name:'clockTick'},{t:'wait',ms:800},
+    c=>c.setArt('num',B.textPanel(860,420,{lines:[{t:'1',red:true}],fontSize:220,startY:.68})),{t:'sfx',name:'clockTick'},{t:'wait',ms:800},
+    {t:'sfx',name:'lightOut'},{t:'fx',name:'blackout',on:true},{t:'particles',mode:null},{t:'wait',ms:1400},
+    c=>{c.clearDialogue(); FZ.audio.stopHeartbeat();},
+    {t:'sfx',name:'emergency'},{t:'fx',name:'flash-red',ms:300},{t:'fx',name:'blackout',on:false,slow:true},
+    c=>{document.getElementById('fz-page').style.background='#240b0b';},
+    {t:'narr',text:'THE EMERGENCY LIGHT CAME ON.',x:500,y:960,w:570,style:'narr red'},
+    {t:'narr',text:'THE MANUSCRIPT HAD TURNED TO THE NEXT PAGE.',x:500,y:1125,w:760},
+    {t:'tap'}, c=>{document.getElementById('fz-page').style.background='';}
+  ]});
+
+  /* S6: recursion + Ren reflection ----------------------------- */
+  S.add({ id:'ch1_s6', ch:1, chapterTitle:CH, next:'ch1_s7', beats:[
+    c=>{c.camSnap(500,750,1,0);let inner='';for(let i=0;i<5;i++){const m=100+i*55;inner+=`<rect x="${m}" y="${m*1.1}" width="${800-i*110}" height="${1150-i*150}" fill="${i%2?PAPER:'#d9d2bf'}" stroke="${i===4?RED:INK}" stroke-width="${8-i}"/><path d="M${m+40} ${m*1.1+120} Q500 ${m*1.1+40} ${960-m} ${m*1.1+120}" stroke="${INK}" stroke-width="${4-i*.5}" fill="none"/>`;};inner+=A.character({who:'mika',expr:'shocked',x:500,y:850,scale:1.6});c.addPanel({id:'recursive',x:35,y:35,w:930,h:1430,art:A.svg(930,1430,inner+A.vignette(930,1430,.9)),aria:'A recursive manga panel depicts Mika turning pages forever'});},
+    {t:'show',panel:'recursive',anim:'iris',dur:950},{t:'sfx',name:'pageTurn'},{t:'amb',name:'drone',arg:-2},{t:'corrupt',v:.15},
+    {t:'cam',x:500,y:700,z:1.22,dur:1600,ease:'inOut'},
+    {t:'narr',text:'A PANEL OF HER TURNING THE PAGE.',x:500,y:1200,w:640},{t:'wait',ms:1000},{t:'clearDlg'},
+    {t:'narr',text:'INSIDE IT: ANOTHER PANEL.',x:500,y:1300,w:640},{t:'wait',ms:900},{t:'clearDlg'},
+    {t:'narr',text:'AND ANOTHER.',x:500,y:1400,w:400,style:'narr red'},{t:'wait',ms:900},
+    c=>{c.addPanel({id:'window',x:560,y:920,w:370,h:430,z:8,art:A.svg(370,430,`<rect width="370" height="430" fill="#100e0b"/><rect x="22" y="22" width="326" height="386" fill="#211e18" stroke="${INK}" stroke-width="7"/>${A.rainStreaks(326,386,{n:28,seed:7,color:'rgba(210,205,192,.45)'})}${A.character({who:'ren',expr:'neutral',x:185,y:255,scale:1.15,opacity:.65,cls:'fx-flicker'})}${A.vignette(370,430,1.5)}`),aria:'Ren reflected in the dark archive window'});},
+    {t:'show',panel:'window',anim:'slam',dur:320},{t:'sfx',name:'glitch'},{t:'fx',name:'shake',ms:450},
+    {t:'clearDlg'},{t:'say',who:'MIKA',text:'Who\u2014?',x:500,y:1040,w:230,tail:'right',style:'shout'},
+    {t:'tap'}
+  ]});
+
+  /* S7: Ren appears in the manuscript / warning --------------- */
+  S.add({ id:'ch1_s7', ch:1, chapterTitle:CH, next:'ch1_s8', beats:[
+    c=>{c.camSnap(500,750,1,0);c.addPanel({id:'empty',x:60,y:70,w:420,h:580,art:B.corridor(420,580,{lightsOff:false}),aria:'An empty corridor behind Mika'});c.addPanel({id:'book',x:520,y:70,w:420,h:580,art:manuscriptMiniArchive(420,580,0,true),aria:'Ren has appeared in the manuscript'});c.addPanel({id:'ren',x:60,y:700,w:880,h:630,art:renPanel(880,630,'neutral',{scale:2.0,y:.64}),aria:'Ren looks directly through the panel'});},
+    {t:'show',panel:'empty',anim:'left',dur:600},{t:'show',panel:'book',anim:'right',dur:600},{t:'amb',name:'drone',arg:0},
+    {t:'narr',text:'THE CORRIDOR WAS EMPTY.',x:260,y:690,w:370},{t:'wait',ms:800},{t:'clearDlg'},
+    {t:'narr',text:'THE PAGE WAS NOT.',x:730,y:690,w:370,style:'narr red'},{t:'show',panel:'ren',anim:'up',dur:700},{t:'sfx',name:'glitch'},
+    {t:'cam',x:500,y:1000,z:1.18,dur:1000,ease:'out'},
+    {t:'say',who:'???',text:'Don\u2019t turn the next page.',x:520,y:1210,w:440,tail:'left',style:'whisper red'},
+    {t:'wait',ms:1800},
+    c=>{c.hotzone({id:'ren-eye',x:365,y:820,w:270,h:240,aria:'Inspect Ren\u2019s eyes',hint:true,onTap:()=>{const p=c.panel('ren');p.el.classList.toggle('fx-glitch');FZ.audio.sfx.glitch(1);}});},
+    {t:'tap'}
+  ]});
+
+  /* S8: the warning ignored / missing person ------------------ */
+  S.add({ id:'ch1_s8', ch:1, chapterTitle:CH, next:'ch1_s9', beats:[
+    c=>{c.camSnap(500,750,1,0);c.addPanel({id:'hand',x:50,y:50,w:900,h:430,art:(()=>{let w=900,h=430,s=`<rect width="${w}" height="${h}" fill="${PAPER}"/><path d="M60 380 Q450 270 840 380 L840 40 Q450 110 60 40 Z" fill="#e0d9c8" stroke="${INK}" stroke-width="7"/>`;s+=A.hand(710,250,-40,3.2);s+=A.speedlines(w,h,{cx:720,cy:260,n:14,seed:3,r0:45,thick:2});return A.svg(w,h,s)})(),aria:'Mika turns the forbidden page'});c.addPanel({id:'girl',x:50,y:530,w:900,h:820,art:(()=>{let w=900,h=820,s=`<rect width="${w}" height="${h}" fill="#ded7c5"/><rect width="${w}" height="${h}" fill="url(#fz-tone-10)" opacity=".2"/>`;s+=A.character({who:'mika',expr:'smile',x:315,y:475,scale:1.75,flip:true,item:false});s+=A.character({who:'yuna',expr:'smile',x:600,y:475,scale:1.75,item:false});s+=`<path d="M210 580 Q450 680 700 570" stroke="${INK}" stroke-width="7" fill="none"/>`;s+=A.vignette(w,h,.75);return A.svg(w,h,s)})(),aria:'Mika and an important girl whose name is missing'});},
+    {t:'show',panel:'hand',anim:'slam',dur:350},{t:'sfx',name:'pageTurn'},{t:'show',panel:'girl',anim:'fade',dur:1000},{t:'amb',name:'voidSpace'},{t:'particles',mode:'dust'},
+    {t:'narr',text:'THE GIRL\u2019S FACE WAS FAMILIAR.',x:500,y:1420,w:700},{t:'wait',ms:1100},{t:'clearDlg'},
+    {t:'say',who:'MIKA',text:'I know you.',x:345,y:1000,w:270,tail:'right',style:'thought'},
+    {t:'wait',ms:1000},{t:'clearDlg'},
+    {t:'say',who:'MIKA',text:'Why can\u2019t I say your name?',x:395,y:1170,w:410,tail:'right',style:'thought red'},
+    {t:'sfx',name:'heartbeat'},{t:'fx',name:'flash-red',ms:150},
+    c=>{const p=c.panel('girl');const d=document.createElement('div');d.style.cssText='position:absolute;left:70px;right:70px;bottom:55px;background:#16130f;color:#f2eee3;padding:18px;text-align:center;font:30px monospace;letter-spacing:5px;z-index:5';d.textContent='THE PERSON YOU FORGOT';p.el.appendChild(d);},
+    {t:'tap'},c=>FZ.audio.stopHeartbeat()
+  ]});
+
+  /* S9: first break - alternate archive, Yuna RUN ------------- */
+  S.add({ id:'ch1_s9', ch:1, chapterTitle:CH, next:'ch1_s10', beats:[
+    c=>{c.camSnap(500,750,1,0);c.addPanel({id:'archiveA',x:45,y:60,w:910,h:1370,art:B.archiveRoom(910,1370,{seed:33,dark:true,lightsOn:false,clockRed:true}),aria:'The archive under emergency light'});},
+    {t:'show',panel:'archiveA',anim:'fade',dur:800},{t:'amb',name:'drone',arg:-5},{t:'particles',mode:'ink'},{t:'corrupt',v:.28},
+    {t:'narr',text:'SHE TOUCHED THE PANEL.',x:500,y:1200,w:460},{t:'wait',ms:800},{t:'clearDlg'},
+    c=>{const p=c.panel('archiveA');p.el.style.transition='opacity 600ms';p.el.style.opacity='.28';c.addPanel({id:'beneath',x:45,y:60,w:910,h:1370,z:1,art:yunaDoor(910,1370,{light:true,run:true}),aria:'Under the transparent panel Yuna stands in a doorway and mouths RUN'});},
+    {t:'show',panel:'beneath',anim:'slam',dur:600},{t:'sfx',name:'glitch'},{t:'fx',name:'shake',ms:500},{t:'fx',name:'flash-red',ms:280},
+    {t:'cam',x:500,y:780,z:1.28,dur:1100,ease:'out'},
+    {t:'say',who:'THE GIRL',text:'RUN.',x:500,y:1060,w:300,tail:'left',style:'shout red'},
+    {t:'wait',ms:1300},
+    c=>{c.hotzone({id:'touch-yuna',x:250,y:250,w:500,h:650,aria:'Touch the girl behind the panel',hint:true,onTap:()=>{FZ.audio.sfx.glitch(2);c.panel('beneath').el.classList.add('fx-glitch');setTimeout(()=>c.panel('beneath').el.classList.remove('fx-glitch'),1200)}});},
+    {t:'tap'}
+  ]});
+
+  /* S10: seven deaths ----------------------------------------- */
+  S.add({ id:'ch1_s10', ch:1, chapterTitle:CH, next:'ch1_s11', beats:[
+    c=>{c.camSnap(500,750,1,0);const sev=B.sevenPanels(900,1380,{dark:false});let s=`<rect width="900" height="1380" fill="${PAPER}"/>${sev.frame}`;const expr=['shocked','scared','sad','determined','empty','closed','tired'];for(let i=0;i<7;i++){const yy=sev.cellY(i);s+=A.character({who:'mika',expr:expr[i],x:sev.cellX+sev.cellW*.5,y:yy+sev.cellH*.53,scale:.37,item:false,blink:false});if(i===3)s+=A.inkSplatter(900,1380,{cx:sev.cellX+sev.cellW*.72,cy:yy+sev.cellH*.45,n:10,maxR:5,spread:70,seed:4,color:RED});}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1380,art:A.svg(900,1380,s),aria:'Seven numbered panels show Mika dying in seven different ways'});},
+    {t:'show',panel:'seven',anim:'slam',dur:450},{t:'sfx',name:'impact'},{t:'amb',name:'drone',arg:-8},{t:'particles',mode:'ink'},{t:'corrupt',v:.36},
+    {t:'cam',x:500,y:750,z:1.07,dur:700},
+    {t:'narr',text:'SEVEN PANELS.',x:500,y:260,w:400},{t:'wait',ms:700},{t:'clearDlg'},
+    {t:'narr',text:'SEVEN DEATHS.',x:500,y:760,w:430,style:'narr red'},{t:'wait',ms:800},{t:'clearDlg'},
+    {t:'narr',text:'ONE FACE.',x:500,y:1260,w:380},{t:'sfx',name:'heartbeat'},{t:'wait',ms:1200},
+    {t:'tap'},c=>FZ.audio.stopHeartbeat()
+  ]});
+
+  /* S11: final blank panel -> someone behind her -> PAGE NOT FOUND */
+  S.add({ id:'ch1_s11', ch:1, chapterTitle:CH, next:'ch2_s1', beats:[
+    c=>{c.camSnap(500,750,1,0);c.addPanel({id:'blank',x:64,y:65,w:872,h:1260,art:A.svg(872,1260,`<rect width="872" height="1260" fill="${PAPER}"/><rect x="55" y="55" width="762" height="1150" fill="#f7f4ec" stroke="${INK}" stroke-width="9"/>${A.dust(872,1260,{n:16,seed:55,color:'rgba(80,74,68,.2)'})}`),aria:'A blank final panel'});},
+    {t:'show',panel:'blank',anim:'fade',dur:900},{t:'amb',name:'voidSpace'},{t:'particles',mode:null},{t:'corrupt',v:.44},
+    {t:'narr',text:'THE LAST PANEL WAS BLANK.',x:500,y:1420,w:600},{t:'wait',ms:1400},{t:'clearDlg'},
+    {t:'sfx',name:'inkScratch'},
+    c=>{const p=c.panel('blank');let s=`<rect width="872" height="1260" fill="${PAPER}"/><rect x="55" y="55" width="762" height="1150" fill="#ddd6c4" stroke="${INK}" stroke-width="9"/>`;s+=B.shelves(80,220,210,700,FZ.util.rng(3));s+=A.character({who:'mika',expr:'tired',x:430,y:760,scale:1.75,item:true});s+=`<g class="fx-flicker" opacity=".88">${A.character({who:'silhouette',expr:'neutral',x:640,y:675,scale:2.1,item:false})}</g>`;s+=A.vignette(872,1260,1.4);c.setArt(p,A.svg(872,1260,s));},
+    {t:'wait',ms:1200},{t:'cam',x:635,y:680,z:1.5,dur:1300,ease:'inOut'},{t:'sfx',name:'heartbeat'},
+    {t:'say',who:'MIKA',text:'In the drawing... someone is behind me.',x:390,y:1080,w:500,tail:'right',style:'thought'},
+    {t:'wait',ms:1700},{t:'clearDlg'},
+    {t:'cam',x:500,y:750,z:1,dur:800},{t:'fx',name:'blackout',on:true},{t:'sfx',name:'impact'},c=>FZ.audio.stopHeartbeat(),
+    {t:'wait',ms:1100},
+    c=>{c.addPanel({id:'pagenotfound',x:0,y:0,w:1000,h:1500,z:20,border:'none',art:B.textPanel(1000,1500,{lines:[{t:'PAGE NOT FOUND',red:true}],fontSize:66,startY:.52,spacing:9}),aria:'Page not found'});},
+    {t:'fx',name:'blackout',on:false},{t:'show',panel:'pagenotfound',anim:'fade',dur:500},{t:'sfx',name:'glitch'},{t:'wait',ms:2500},
+    c=>{FZ.engine.Save.data.unlockedCh=Math.max(FZ.engine.Save.data.unlockedCh,2);FZ.engine.Save.save();},
+    {t:'tap'}
+  ]});
+})();
+
+/* ============================================================
+   FRAME ZERO - 30-boot.js
+   Assembly + boot. Story registry lives here (chapters populate it).
+   ============================================================ */
+'use strict';
+FZ.story = (function () {
+  const byChapter = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  return {
+    add(scene) {
+      FZ.engine.Engine.register(scene);
+      byChapter[scene.ch].push(scene.id);
+    },
+    sceneAt(ch, idx) {
+      const arr = byChapter[ch];
+      return arr && arr.length ? arr[Math.min(idx, arr.length - 1)] : null;
+    },
+    chapterSceneCount(ch) { return byChapter[ch].length; }
+  };
+})();
+
+(function boot() {
+  const U = FZ.util, E = FZ.engine;
+  const $ = U.$;
+
+  function init() {
+    // layers
+    E.Camera.init($('#fz-camera'));
+    E.Panels.init($('#fz-panels'));
+    E.Dialogue.init($('#fz-dialogue'));
+    E.Particles.init($('#fz-fxcanvas'));
+    E.FX.init($('#fz-pagefx'), $('#fz-shake-wrap'));
+    E.Interact.init($('#fz-hotzones'));
+
+    E.Save.load();
+    E.Settings.init(E.Save.data.settings);
+    FZ.ui.build();
+    FZ.ui.Debug.init();
+    FZ.ui.refreshSoundIcon();
+
+    // resume hint
+    FZ.ui.showTitle();
+
+    // unlock chapters as the reader reaches them
+    U.bus.on('save:updated', d => {
+      if (d.ch > d.unlockedCh) { d.unlockedCh = d.ch; U.storeSave(d); }
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>
