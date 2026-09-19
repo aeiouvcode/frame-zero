@@ -3218,6 +3218,300 @@ FZ.ui = (function () {
 })();
 
 /* ============================================================
+   FRAME ZERO - CHAPTER 3
+   THE ERASED CITY
+   Layout itself begins to fracture: tilted panels, broken gutters.
+   ============================================================ */
+'use strict';
+(function () {
+  const A = FZ.art, B = FZ.bg, S = FZ.story, U = FZ.util;
+  const INK = A.INK, PAPER = A.PAPER, RED = A.RED, G1 = A.G1, G2 = A.G2, G3 = A.G3;
+  const CH = 'THE ERASED CITY';
+
+  function district(w, h, opts) {
+    // a district of discarded versions: outline-only buildings + wandering draft people
+    const r = U.rng(opts.seed || 7);
+    let s = `<rect width="${w}" height="${h}" fill="${opts.dark ? '#171410' : '#d5cfc0'}"/>`;
+    s += `<rect width="${w}" height="${h}" fill="url(#fz-tone-10)" opacity=".22"/>`;
+    for (let i = 0; i < 5; i++) {
+      const bx = w * i / 5 + r() * 12, bw = w / 5 - 10, bh = h * (0.25 + r() * 0.3), by = h * 0.75 - bh;
+      s += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="none" stroke="${opts.dark ? G2 : G1}" stroke-width="2.5" stroke-dasharray="7 6"/>`;
+      s += `<line x1="${bx}" y1="${by}" x2="${bx + bw}" y2="${by + bh}" stroke="${G2}" stroke-width="1"/>`;
+    }
+    opts.people.forEach((p, i) => {
+      s += `<g opacity="${p.opacity == null ? 0.85 : p.opacity}">`;
+      s += A.character({ who: p.who, expr: p.expr || 'neutral', x: w * (0.18 + i * 0.22), y: h * 0.68, scale: (w / 480) * (p.s || 1), flip: p.flip });
+      s += `</g>`;
+      if (p.dashed) s += `<rect x="${w * (0.18 + i * 0.22) - 60}" y="${h * 0.68 - 210 * (w / 480)}" width="120" height="${230 * (w / 480)}" fill="none" stroke="${RED}" stroke-width="2" stroke-dasharray="5 5"/>`;
+    });
+    s += `<rect x="0" y="${h * 0.75}" width="${w}" height="4" fill="${INK}"/>`;
+    s += `<text x="${w / 2}" y="${h * 0.92}" text-anchor="middle" font-family="monospace" font-size="${h * 0.045}" letter-spacing="4" fill="${opts.labelRed ? RED : (opts.dark ? G2 : G1)}">${opts.label}</text>`;
+    s += A.vignette(w, h, opts.dark ? 1.2 : 0.8);
+    return A.svg(w, h, s);
+  }
+
+  /* S1: the station that should not exist --------------------- */
+  S.add({ id: 'ch3_s1', ch: 3, chapterTitle: CH, next: 'ch3_s2', beats: [
+    { t: 'title', chn: 'CHAPTER 03', text: CH, holdMs: 2600 },
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'st', x: 52, y: 80, w: 896, h: 760, art: B.station(896, 760, {}), aria: 'An underground station that was erased from the city' });
+      c.addPanel({ id: 'mikastairs', x: 52, y: 870, w: 440, h: 500, art: (() => {
+        let s = `<rect width="440" height="500" fill="#12100c"/>`;
+        s += `<rect width="440" height="500" fill="url(#fz-tone-40)" opacity=".3"/>`;
+        for (let i = 0; i < 7; i++) s += `<rect x="40" y="${420 - i * 52}" width="360" height="10" fill="${i % 2 ? '#1c1915' : '#23201a'}" stroke="${INK}" stroke-width="2.5"/>`;
+        s += A.character({ who: 'mika', expr: 'determined', x: 220, y: 300, scale: 1.2, item: false });
+        s += A.vignette(440, 500, 1.3);
+        return A.svg(440, 500, s);
+      })(), aria: 'Mika descends into the station' });
+      c.addPanel({ id: 'sign', x: 508, y: 870, w: 440, h: 500, art: (() => {
+        let s = `<rect width="440" height="500" fill="#0d0b09"/>`;
+        s += `<rect x="70" y="120" width="300" height="110" fill="#14120e" stroke="${G2}" stroke-width="3"/>`;
+        s += `<text x="220" y="188" text-anchor="middle" font-family="monospace" font-size="44" fill="${G3}">2:13</text>`;
+        s += `<text x="220" y="300" text-anchor="middle" font-family="monospace" font-size="22" fill="${G2}">PLATFORM 0</text>`;
+        s += `<text x="220" y="340" text-anchor="middle" font-family="monospace" font-size="22" fill="${RED}">NOT IN SERVICE</text>`;
+        s += A.vignette(440, 500, 1.2);
+        return A.svg(440, 500, s);
+      })(), aria: 'A platform sign reading 2:13, platform 0, not in service' });
+    },
+    { t: 'show', panel: 'st', anim: 'fade', dur: 800 }, { t: 'amb', name: 'voidSpace' }, { t: 'particles', mode: 'dust' },
+    { t: 'narr', text: 'UNDER THE CITY, A STATION THE MAPS FORGOT.', x: 500, y: 1470, w: 720 },
+    { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'mikastairs', anim: 'left', dur: 500 }, { t: 'show', panel: 'sign', anim: 'right', dur: 500 },
+    { t: 'say', who: 'MIKA', text: 'Ren said the discarded drafts pile up somewhere. Every erased thing has to go somewhere.', x: 500, y: 1250, w: 620, tail: 'left', style: 'thought' },
+    { t: 'sfx', name: 'paperRustle' },
+    { t: 'tap' }
+  ] });
+
+  /* S2: the erased city ---------------------------------------- */
+  S.add({ id: 'ch3_s2', ch: 3, chapterTitle: CH, next: 'ch3_s3', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'city', x: 40, y: 80, w: 920, h: 780, art: B.unfinishedCity(920, 780, { floatPanels: 7 }), aria: 'A half-drawn city of discarded drafts' });
+      c.addPanel({ id: 'streetpanel', x: 350, y: 180, w: 300, h: 240, z: 5, art: (() => {
+        let s = `<rect width="300" height="240" fill="${PAPER}"/>`;
+        s += `<rect x="20" y="100" width="110" height="120" fill="${G1}" stroke="${INK}" stroke-width="3"/>`;
+        s += `<rect x="150" y="70" width="120" height="150" fill="url(#fz-tone-25)" stroke="${INK}" stroke-width="3"/>`;
+        s += `<rect x="40" y="120" width="26" height="34" fill="${PAPER}"/><rect x="180" y="95" width="26" height="34" fill="${PAPER}"/>`;
+        s += `<rect x="170" y="150" width="50" height="70" fill="${INK}"/>`;
+        s += `<rect x="186" y="165" width="18" height="40" fill="${RED}" opacity="0.85"/>`;
+        s += `<rect width="300" height="240" fill="none" stroke="${INK}" stroke-width="6"/>`;
+        return A.svg(300, 240, s);
+      })(), aria: 'A floating panel showing Mika\u2019s street, her door marked red' });
+    },
+    { t: 'show', panel: 'city', anim: 'fade', dur: 900 }, { t: 'amb', name: 'drone', arg: -6 },
+    { t: 'narr', text: 'THE CITY OF THINGS THAT DID NOT MAKE IT INTO THE STORY.', x: 500, y: 1470, w: 760 },
+    { t: 'wait', ms: 1500 },
+    { t: 'show', panel: 'streetpanel', anim: 'iris', dur: 800 }, { t: 'sfx', name: 'chime' },
+    { t: 'say', who: 'MIKA', text: 'That\u2019s my street. Drawn from above. Nobody has ever seen it from above.', x: 500, y: 480, w: 560, tail: 'down', style: 'thought' },
+    c => {
+      c.hotzone({ id: 'street-tap', x: 350, y: 180, w: 300, h: 240, aria: 'Touch the floating panel of your street', hint: true, onTap: () => {
+        FZ.audio.sfx.glitch(1);
+        if (c.clue('city-panel')) c.ui.clueToast('city-panel');
+      } });
+    },
+    { t: 'tap' }
+  ] });
+
+  /* S3: four districts ----------------------------------------- */
+  S.add({ id: 'ch3_s3', ch: 3, chapterTitle: CH, next: 'ch3_s4', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'd1', x: 52, y: 80, w: 440, h: 500, art: district(440, 500, { seed: 3, label: 'DISTRICT OF NOTICERS', people: [{ who: 'girl', expr: 'shocked' }, { who: 'girl', expr: 'determined' }] }), aria: 'District of noticers' });
+      c.addPanel({ id: 'd2', x: 508, y: 80, w: 440, h: 500, art: district(440, 500, { seed: 5, label: 'DISTRICT OF THE UNWRITTEN', labelRed: true, people: [{ who: 'ren', opacity: 0.5, dashed: true }, { who: 'silhouette', opacity: 0.4 }] }), aria: 'District of the unwritten' });
+      c.addPanel({ id: 'd3', x: 52, y: 620, w: 440, h: 500, art: district(440, 500, { seed: 9, label: 'DISTRICT OF SISTERS', people: [{ who: 'yuna', expr: 'sad' }, { who: 'yuna', opacity: 0.35 }] }), aria: 'District of erased sisters' });
+      c.addPanel({ id: 'd4', x: 508, y: 620, w: 440, h: 500, art: district(440, 500, { seed: 11, dark: true, label: 'DISTRICT OF AUTHORS', people: [{ who: 'kuroda' }, { who: 'editor', opacity: 0.5, flip: true }] }), aria: 'District of authors' });
+    },
+    { t: 'show', panel: 'd1', anim: 'left', dur: 500 }, { t: 'show', panel: 'd2', anim: 'right', dur: 500 },
+    { t: 'show', panel: 'd3', anim: 'left', dur: 500 }, { t: 'show', panel: 'd4', anim: 'right', dur: 500 },
+    { t: 'amb', name: 'drone', arg: -4 }, { t: 'particles', mode: 'dust' },
+    { t: 'narr', text: 'FOUR DISTRICTS. EVERY DRAFT THAT WAS EVER THROWN AWAY.', x: 500, y: 1470, w: 760 },
+    { t: 'tap' }
+  ] });
+
+  /* S4: noticers ------------------------------------------------ */
+  S.add({ id: 'ch3_s4', ch: 3, chapterTitle: CH, next: 'ch3_s5', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'girls', x: 52, y: 80, w: 896, h: 640, art: (() => {
+        let s = `<rect width="896" height="640" fill="#d5cfc0"/>`;
+        s += `<rect width="896" height="640" fill="url(#fz-tone-10)" opacity=".22"/>`;
+        s += A.character({ who: 'girl', expr: 'neutral', x: 180, y: 420, scale: 1.6 });
+        s += A.character({ who: 'girl', expr: 'shocked', x: 430, y: 420, scale: 1.6 });
+        s += A.character({ who: 'girl', expr: 'determined', x: 690, y: 420, scale: 1.6, flip: true });
+        s += `<text x="448" y="70" text-anchor="middle" font-family="monospace" font-size="26" letter-spacing="5" fill="${G1}">THE GIRLS WHO NOTICED TOO MUCH</text>`;
+        s += A.vignette(896, 640, 0.9);
+        return A.svg(896, 640, s);
+      })(), aria: 'Three discarded versions of girls who noticed the seams' });
+      c.addPanel({ id: 'girlsay', x: 52, y: 760, w: 896, h: 500, art: B.textPanel(896, 500, { lines: [{ t: '"WE ALL SAW THE CLOCK STOP."' }, { t: '"WE ALL ASKED ABOUT IT."' }, { t: '"THAT IS WHY WE ARE HERE."' }], fontSize: 34, startY: 0.32, spacing: 3.4 }), aria: 'The noticers explain why they were discarded' });
+    },
+    { t: 'show', panel: 'girls', anim: 'fade', dur: 700 }, { t: 'amb', name: 'hum' },
+    { t: 'narr', text: 'THEY LOOKED AT HER THE WAY MIRRORS DO.', x: 500, y: 1470, w: 600 },
+    { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'girlsay', anim: 'up', dur: 600 }, { t: 'sfx', name: 'breathIn' },
+    { t: 'tap' }
+  ] });
+
+  /* S5: the unwritten ------------------------------------------- */
+  S.add({ id: 'ch3_s5', ch: 3, chapterTitle: CH, next: 'ch3_s6', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'rens', x: 52, y: 80, w: 896, h: 700, art: (() => {
+        let s = `<rect width="896" height="700" fill="#cdc6b6"/>`;
+        s += `<g opacity="0.35">${A.character({ who: 'ren', expr: 'smile', x: 170, y: 460, scale: 1.7 })}</g>`;
+        s += `<g opacity="0.55">${A.character({ who: 'ren', expr: 'sad', x: 430, y: 460, scale: 1.7 })}</g>`;
+        s += `<g opacity="0.3">${A.character({ who: 'ren', expr: 'determined', x: 690, y: 460, scale: 1.7, flip: true })}</g>`;
+        [170, 430, 690].forEach(x => { s += `<rect x="${x - 95}" y="190" width="190" height="400" fill="none" stroke="${RED}" stroke-width="2.5" stroke-dasharray="6 6"/>`; });
+        s += `<text x="448" y="90" text-anchor="middle" font-family="monospace" font-size="26" letter-spacing="5" fill="${RED}">BOYS WHO WERE NEVER WRITTEN</text>`;
+        s += A.vignette(896, 700, 1);
+        return A.svg(896, 700, s);
+      })(), aria: 'Three dashed-off versions of Ren' });
+      c.addPanel({ id: 'renexplain', x: 52, y: 820, w: 896, h: 500, art: (() => {
+        let s = `<rect width="896" height="500" fill="#14110d"/>`;
+        s += `<rect width="896" height="500" fill="url(#fz-tone-40)" opacity=".3"/>`;
+        s += A.character({ who: 'ren', expr: 'sad', x: 260, y: 330, scale: 1.5 });
+        s += A.vignette(896, 500, 1.1);
+        return A.svg(896, 500, s);
+      })(), aria: 'Ren among his unwritten selves' });
+    },
+    { t: 'show', panel: 'rens', anim: 'fade', dur: 700 }, { t: 'amb', name: 'drone', arg: -7 },
+    { t: 'narr', text: 'REN WALKED BETWEEN HIS OWN GHOSTS.', x: 500, y: 1470, w: 560 },
+    { t: 'wait', ms: 1300 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'renexplain', anim: 'up', dur: 600 },
+    { t: 'say', who: 'REN', text: 'Every time the story needed a boy like me, it drew a new one. Then decided he was wrong.', x: 540, y: 900, w: 620, tail: 'left' },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: 'REN', text: 'I am the one it kept. I never found out why.', x: 540, y: 1060, w: 520, tail: 'left', style: 'whisper' },
+    { t: 'tap' }
+  ] });
+
+  /* S6: sisters -------------------------------------------------- */
+  S.add({ id: 'ch3_s6', ch: 3, chapterTitle: CH, next: 'ch3_s7', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'yunas', x: 52, y: 80, w: 896, h: 640, art: (() => {
+        let s = `<rect width="896" height="640" fill="#d5cfc0"/>`;
+        s += `<rect width="896" height="640" fill="url(#fz-tone-10)" opacity=".22"/>`;
+        s += A.character({ who: 'yuna', expr: 'smile', x: 220, y: 420, scale: 1.7 });
+        s += `<g opacity="0.4">${A.character({ who: 'yuna', expr: 'sad', x: 500, y: 420, scale: 1.7 })}</g>`;
+        s += `<g opacity="0.18">${A.character({ who: 'yuna', expr: 'neutral', x: 720, y: 420, scale: 1.7, flip: true })}</g>`;
+        s += `<text x="448" y="70" text-anchor="middle" font-family="monospace" font-size="26" letter-spacing="5" fill="${G1}">THE SISTERS THE STORY DID NOT NEED</text>`;
+        s += A.vignette(896, 640, 0.95);
+        return A.svg(896, 640, s);
+      })(), aria: 'Fading versions of Yuna' });
+      c.addPanel({ id: 'mikareach', x: 52, y: 760, w: 896, h: 560, art: (() => {
+        let s = `<rect width="896" height="560" fill="#1a1712"/>`;
+        s += A.character({ who: 'mika', expr: 'sad', x: 250, y: 380, scale: 1.6, item: false });
+        s += `<g opacity="0.35">${A.character({ who: 'yuna', expr: 'smile', x: 620, y: 380, scale: 1.6, flip: true })}</g>`;
+        s += `<line x1="380" y1="300" x2="480" y2="300" stroke="${RED}" stroke-width="3" stroke-dasharray="10 8"/>`;
+        s += A.vignette(896, 560, 1.2);
+        return A.svg(896, 560, s);
+      })(), aria: 'Mika reaches for a fading Yuna' });
+    },
+    { t: 'show', panel: 'yunas', anim: 'fade', dur: 700 }, { t: 'amb', name: 'drone', arg: -8 },
+    { t: 'say', who: 'MIKA', text: 'Yuna. YUNA. Which one of you is mine?', x: 500, y: 700, w: 480, tail: 'left', style: 'shout' },
+    { t: 'wait', ms: 1400 },
+    { t: 'show', panel: 'mikareach', anim: 'up', dur: 600 },
+    { t: 'say', who: 'YUNA', text: 'None of us. All of us. Don\u2019t follow us in, Mika.', x: 620, y: 1000, w: 480, tail: 'right', style: 'whisper' },
+    { t: 'sfx', name: 'heartbeat' },
+    { t: 'tap' }, c => FZ.audio.stopHeartbeat()
+  ] });
+
+  /* S7: authors --------------------------------------------------- */
+  S.add({ id: 'ch3_s7', ch: 3, chapterTitle: CH, next: 'ch3_s8', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'authors', x: 52, y: 80, w: 896, h: 760, art: district(896, 760, { seed: 15, dark: true, label: 'EVERYONE WHO EVER HELD THE PEN', labelRed: true, people: [{ who: 'kuroda', expr: 'sad' }, { who: 'editor', opacity: 0.55, flip: true }, { who: 'silhouette', opacity: 0.35 }] }), aria: 'The district of authors: everyone who ever held the pen' });
+      c.addPanel({ id: 'deskrow', x: 52, y: 880, w: 896, h: 460, art: (() => {
+        let s = `<rect width="896" height="460" fill="#0f0d0a"/>`;
+        s += `<rect width="896" height="460" fill="url(#fz-tone-40)" opacity=".28"/>`;
+        for (let i = 0; i < 3; i++) {
+          const dx = 90 + i * 280;
+          s += `<rect x="${dx}" y="260" width="220" height="26" fill="${G1}" stroke="${INK}" stroke-width="3"/>`;
+          s += `<rect x="${dx + 20}" y="200" width="120" height="60" fill="${PAPER}" opacity="0.75"/>`;
+          s += `<line x1="${dx + 150}" y1="230" x2="${dx + 190}" y2="200" stroke="${INK}" stroke-width="4"/>`;
+        }
+        s += `<text x="448" y="100" text-anchor="middle" font-family="monospace" font-size="24" fill="${G2}">DESKS WAITING FOR HANDS THAT NEVER RETURNED</text>`;
+        s += A.vignette(896, 460, 1.3);
+        return A.svg(896, 460, s);
+      })(), aria: 'Empty desks of discarded authors' });
+    },
+    { t: 'show', panel: 'authors', anim: 'fade', dur: 700 }, { t: 'amb', name: 'voidSpace' },
+    { t: 'narr', text: 'THE DEEPEST DISTRICT IS FOR THE WRITERS.', x: 500, y: 1470, w: 620 },
+    { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'deskrow', anim: 'up', dur: 600 },
+    { t: 'say', who: 'REN', text: 'Careful. The Editor started as one of them.', x: 500, y: 1150, w: 480, tail: 'left', style: 'whisper red' },
+    { t: 'tap' }
+  ] });
+
+  /* S8: Yuna's margin note ----------------------------------------- */
+  S.add({ id: 'ch3_s8', ch: 3, chapterTitle: CH, next: 'ch3_s9', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'page', x: 64, y: 80, w: 872, h: 1000, art: (() => {
+        let s = `<rect width="872" height="1000" fill="#e6dfcd"/>`;
+        s += `<rect x="60" y="60" width="752" height="880" fill="${PAPER}" stroke="${INK}" stroke-width="7"/>`;
+        // printed rows of the manuscript
+        for (let i = 0; i < 14; i++) s += `<line x1="120" y1="${130 + i * 48}" x2="${640 + ((i * 37) % 90)}" y2="${130 + i * 48}" stroke="${G1}" stroke-width="4"/>`;
+        // margin note in red handwriting
+        s += `<g transform="rotate(-6 700 420)">`;
+        s += `<text x="655" y="260" font-family="Comic Sans MS, cursive" font-size="34" fill="${RED}">The Editor</text>`;
+        s += `<text x="655" y="320" font-family="Comic Sans MS, cursive" font-size="34" fill="${RED}">cannot create</text>`;
+        s += `<text x="655" y="380" font-family="Comic Sans MS, cursive" font-size="34" fill="${RED}">a person</text>`;
+        s += `<text x="655" y="440" font-family="Comic Sans MS, cursive" font-size="34" fill="${RED}">from nothing.</text>`;
+        s += `<text x="655" y="540" font-family="Comic Sans MS, cursive" font-size="30" fill="${RED}">- Y.</text>`;
+        s += `</g>`;
+        s += A.inkSplatter(872, 1000, { cx: 700, cy: 620, n: 8, maxR: 4, spread: 90, seed: 4 });
+        s += A.vignette(872, 1000, 0.7);
+        return A.svg(872, 1000, s);
+      })(), aria: 'A manuscript page with Yuna\u2019s red margin note' });
+    },
+    { t: 'show', panel: 'page', anim: 'iris', dur: 900 }, { t: 'sfx', name: 'pageTurn' }, { t: 'amb', name: 'drone', arg: -5 },
+    { t: 'cam', x: 660, y: 420, z: 1.5, dur: 1300, ease: 'inOut' },
+    { t: 'narr', text: 'IN THE MARGIN, IN RED, IN HER SISTER\u2019S HAND:', x: 500, y: 1470, w: 680 },
+    { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
+    c => { if (c.clue('yuna-letter')) c.ui.clueToast('yuna-letter'); },
+    { t: 'say', who: 'MIKA', text: 'She was here. She got this far and left me the way forward.', x: 500, y: 1150, w: 560, tail: 'left', style: 'thought' },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA', text: 'If the Editor can\u2019t create people from nothing... then someone created him.', x: 500, y: 1300, w: 580, tail: 'left', style: 'red' },
+    { t: 'tap' }
+  ] });
+
+  /* S9: reset ------------------------------------------------------ */
+  S.add({ id: 'ch3_s9', ch: 3, chapterTitle: CH, next: 'ch4_s1', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'resetword', x: 52, y: 80, w: 896, h: 420, art: B.textPanel(896, 420, { lines: [{ t: 'R E A L I T Y', red: true }, { t: 'R E S E T', red: true }], fontSize: 52 }), aria: 'Reality reset' });
+      c.addPanel({ id: 'morning', x: 52, y: 530, w: 896, h: 560, art: B.apartment(896, 560, { mugs: 1 }), aria: 'Morning. One mug. Everything ordinary.' });
+      c.addPanel({ id: 'nail', x: 52, y: 1120, w: 896, h: 420, art: (() => {
+        let s = `<rect width="896" height="420" fill="${PAPER}"/>`;
+        s += A.hand(430, 260, -8, 3.8);
+        s += `<line x1="416" y1="148" x2="466" y2="141" stroke="${RED}" stroke-width="4"/>`;
+        s += `<circle cx="441" cy="145" r="70" fill="none" stroke="${RED}" stroke-width="2.5" stroke-dasharray="6 6"/>`;
+        s += `<text x="448" y="390" text-anchor="middle" font-family="monospace" font-size="22" fill="${G1}">UNDER THE FINGERNAIL, A LINE OF CRIMSON INK</text>`;
+        s += A.vignette(896, 420, 0.7);
+        return A.svg(896, 420, s);
+      })(), aria: 'A line of crimson under Mika\u2019s fingernail' });
+    },
+    { t: 'show', panel: 'resetword', anim: 'slam', dur: 300 }, { t: 'sfx', name: 'glitch' }, { t: 'fx', name: 'whiteout', ms: 900 },
+    { t: 'amb', name: 'none' }, { t: 'corrupt', v: 0.8 },
+    { t: 'wait', ms: 800 },
+    { t: 'show', panel: 'morning', anim: 'fade', dur: 900 }, { t: 'amb', name: 'hum' },
+    { t: 'narr', text: 'THE NEXT MORNING, NOTHING HAD EVER BEEN WRONG.', x: 500, y: 1060, w: 660 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'show', panel: 'nail', anim: 'up', dur: 600 },
+    { t: 'say', who: 'MIKA', text: 'It was there before the reset. It is still there now.', x: 500, y: 1320, w: 560, tail: 'down', style: 'thought red' },
+    c => { if (c.clue('red-line')) c.ui.clueToast('red-line'); },
+    { t: 'wait', ms: 1400 },
+    { t: 'fx', name: 'blackout', on: true, slow: true },
+    { t: 'narr', text: 'END OF CHAPTER 03', x: 500, y: 750, w: 500 },
+    { t: 'wait', ms: 1600 },
+    c => { FZ.engine.Save.data.unlockedCh = Math.max(FZ.engine.Save.data.unlockedCh, 4); FZ.engine.Save.save(); },
+    { t: 'fx', name: 'blackout', on: false, slow: true },
+    { t: 'tap' }
+  ] });
+})();
+
+/* ============================================================
    FRAME ZERO - 30-boot.js
    Assembly + boot. Story registry lives here (chapters populate it).
    ============================================================ */
