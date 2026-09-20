@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Py/fSPgI25nC6/uuJGR3j1cPCaKgG3WcKxs5sIKLXMU='; style-src 'sha256-W7+7F6lUnmv76YfKmgO9xRX1wA9SKhrp9+Ek0QZedhs='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hjPT49siKAxBjeGouBciAI8CC5JmATIuXLrl8K9dKvE='; style-src 'sha256-W7+7F6lUnmv76YfKmgO9xRX1wA9SKhrp9+Ek0QZedhs='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -2084,6 +2084,7 @@ FZ.engine = (function () {
       Interact.clear();
       Panels.clear();
       Particles.setMode(null);
+      ['flash-red', 'flash-white', 'blackout', 'static-noise'].forEach(k => { const fl = FX.layers[k]; if (fl) fl.classList.remove('on', 'fade-slow'); });
       FZ.ui.setProgress(this.progressOf(scene));
       FZ.ui.setChapterLabel(scene.ch, scene.chapterTitle);
       document.getElementById('fz-page').classList.toggle('ch5space', scene.ch >= 5);
