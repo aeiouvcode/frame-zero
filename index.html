@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hjPT49siKAxBjeGouBciAI8CC5JmATIuXLrl8K9dKvE='; style-src 'sha256-W7+7F6lUnmv76YfKmgO9xRX1wA9SKhrp9+Ek0QZedhs='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5RxL1spqQayVOqQ5QlsEAyBKrIc1zI5ReyNn9///3D4='; style-src 'sha256-W7+7F6lUnmv76YfKmgO9xRX1wA9SKhrp9+Ek0QZedhs='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -2236,7 +2236,10 @@ FZ.ui = (function () {
     'seven-tapped': { name: 'All Seven', desc: 'You spoke to every version. Only one of them looked back at you, specifically.' },
     'red-line': { name: 'The Red Line', desc: 'A hairline of crimson under your fingernail. It was there before the reset. It is still there now.' },
     'ui-awake': { name: 'The Interface Is Listening', desc: 'You touched the parts of the frame that are not part of the story. They answered.' },
-    'predrawn-choice': { name: 'Already Drawn', desc: 'The manuscript showed the button being pressed before you pressed it.' }
+    'predrawn-choice': { name: 'Already Drawn', desc: 'The manuscript showed the button being pressed before you pressed it.' },
+    'vote-07': { name: 'The Seventh Vote', desc: '07 voted before the question was asked. 07 always does. The other six have stopped being surprised.' },
+    'author-hand': { name: 'A Different Hand', desc: 'The outline behind Ren is drawn in a different hand than the boy. One of them is a tracing.' },
+    'zero-name': { name: 'Zero Is a Name', desc: 'FRAME 004 OF 000. 000 is not a count. It is a name. The count is how it says hello.' }
   };
 
   let els = {};
@@ -3746,6 +3749,15 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
     { t: 'say', who: 'MIKA-07', text: 'It doesn\u2019t.', x: 448, y: 1140, w: 220, tail: 'up', style: 'red shout' },
     { t: 'sfx', name: 'heartbeat' },
+    c => {
+      c.hotzone({ id: 'vote-07', x: 150, y: 430, w: 190, h: 170, aria: 'Ask why 07 is drawn in red', hint: true, onTap: () => {
+        FZ.audio.sfx.glitch(1);
+        FZ.engine.FX.shake(220);
+        FZ.ui.caption('[ 07 voted before the question was asked. 07 always does. ]');
+        setTimeout(() => FZ.ui.caption(''), 3400);
+        if (c.clue('vote-07')) c.ui.clueToast('vote-07');
+      } });
+    },
     { t: 'tap' }, c => FZ.audio.stopHeartbeat()
   ] });
 
@@ -3781,6 +3793,17 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'show', panel: 'mikathink', anim: 'up', dur: 600 },
     { t: 'say', who: 'MIKA', text: 'Yuna said the Editor cannot create a person from nothing. So which nothing did you come from?', x: 500, y: 1050, w: 620, tail: 'up', style: 'red' },
     { t: 'sfx', name: 'glitch' },
+    c => {
+      c.hotzone({ id: 'author-hand', x: 545, y: 300, w: 220, h: 360, aria: 'Trace the outline behind Ren', hint: true, onTap: () => {
+        FZ.audio.sfx.glitch(2);
+        const p = c.panel('renorigin');
+        p.el.classList.add('fx-glitch');
+        setTimeout(() => p.el.classList.remove('fx-glitch'), 1100);
+        FZ.ui.caption('[ the outline was drawn in a different hand than the boy ]');
+        setTimeout(() => FZ.ui.caption(''), 3400);
+        if (c.clue('author-hand')) c.ui.clueToast('author-hand');
+      } });
+    },
     { t: 'tap' }
   ] });
 
@@ -3826,6 +3849,14 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'wait', ms: 1600 },
     c => { FZ.engine.Save.data.unlockedCh = Math.max(FZ.engine.Save.data.unlockedCh, 5); FZ.engine.Save.save(); },
     { t: 'fx', name: 'blackout', on: false, slow: true },
+    c => {
+      c.hotzone({ id: 'zero-name', x: 250, y: 630, w: 500, h: 180, aria: 'Read the frame count again', hint: true, onTap: () => {
+        FZ.engine.FX.flash('flash-red', 140);
+        FZ.ui.caption('[ 000 is not a count. it is a name ]');
+        setTimeout(() => FZ.ui.caption(''), 3400);
+        if (c.clue('zero-name')) c.ui.clueToast('zero-name');
+      } });
+    },
     { t: 'tap' }
   ] });
 })();
