@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-GO3pgyBr+AZ4/yegwKxa4Xg9wsFiGSgfwN0NH4XUEUg='; style-src 'sha256-v/aNpMYAUiX6vd3ar18TANiBrot3au9vcuErVZPmXHU='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Py/fSPgI25nC6/uuJGR3j1cPCaKgG3WcKxs5sIKLXMU='; style-src 'sha256-W7+7F6lUnmv76YfKmgO9xRX1wA9SKhrp9+Ek0QZedhs='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -465,6 +465,18 @@ body.motion-reduced #fz-next-hint { animation: none; }
 .tier-low .fz-overlay, .tier-low #fz-caption-line { backdrop-filter: none !important; }
 .tier-low .panel { will-change: auto; }
 .tier-low .fx-drift { animation-duration: 9s; }
+/* living ink: breathing characters */
+@keyframes fz-breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2.6px); } }
+.fz-breathe { animation: fz-breathe 3.9s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+/* paper grain over the page */
+#fz-grain { position: absolute; inset: 0; opacity: .16; pointer-events: none; mix-blend-mode: multiply; z-index: 5; }
+/* page-turn sweep between scenes */
+#fz-pageturn { position: absolute; inset: -4% -8%; background: var(--paper); border-left: 10px solid var(--ink); box-shadow: -30px 0 60px rgba(0,0,0,.55); transform: translateX(112%) skewX(-5deg); pointer-events: none; z-index: 40; }
+#fz-pageturn.turn { animation: fz-pageturn 640ms cubic-bezier(.6,.05,.3,.95) both; }
+@keyframes fz-pageturn { 0% { transform: translateX(112%) skewX(-5deg); } 45% { transform: translateX(0%) skewX(-2deg); } 100% { transform: translateX(-112%) skewX(-5deg); } }
+body.motion-reduced .fz-breathe, .tier-low .fz-breathe { animation: none !important; }
+body.motion-reduced #fz-pageturn.turn { animation: none !important; }
+.tier-low #fz-grain { display: none; }
 @media (max-width: 480px) {
   .ui-right { right: 8px; gap: 8px; }
   .fz-icon-btn { width: 40px; height: 40px; }
@@ -485,9 +497,11 @@ body.motion-reduced #fz-next-hint { animation: none; }
         <div id="fz-inksplash" class="fz-layer"></div>
         <div id="fz-dialogue" class="fz-layer"></div>
         <div id="fz-hotzones" class="fz-layer"></div>
+        <svg id="fz-grain" class="fz-layer" width="1000" height="1500" aria-hidden="true"><filter id="fz-grainf"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.5 0"/></filter><rect width="1000" height="1500" filter="url(#fz-grainf)"/></svg>
         <div id="fz-pagefx" class="fz-layer"></div>
       </div>
     </div>
+    <div id="fz-pageturn" aria-hidden="true"></div>
   </div>
 </div>
 <script>
@@ -1172,7 +1186,8 @@ FZ.art = (function () {
     t.push(`scale(${(o.flip ? -sc : sc).toFixed(3)} ${sc.toFixed(3)})`);
     t.push('translate(-100 -150)');
     const extraClass = o.cls || '';
-    return `<g transform="${t.join(' ')}" opacity="${o.opacity == null ? 1 : o.opacity}" ${o.id ? `id="${o.id}"` : ''} class="${extraClass}">${g}</g>`;
+    const inner = o.breathe === false ? g : `<g class="fz-breathe">${g}</g>`;
+    return `<g transform="${t.join(' ')}" opacity="${o.opacity == null ? 1 : o.opacity}" ${o.id ? `id="${o.id}"` : ''} class="${extraClass}">${inner}</g>`;
   }
 
   /* small hand for interactions */
@@ -2151,6 +2166,8 @@ FZ.engine = (function () {
 
     goto(sceneId) {
       if (!sceneId) { FZ.ui.showEndCard(); return; }
+      const pt = document.getElementById('fz-pageturn');
+      if (pt && this.currentScene && Settings.values.motion !== 'reduced') { pt.classList.remove('turn'); void pt.offsetWidth; pt.classList.add('turn'); }
       this.playScene(sceneId);
     },
     nextScene() {
@@ -2806,7 +2823,7 @@ for(let i=0;i<7;i++){const yy=sev.cellY(i),cx=sev.cellX+sev.cellW*.5,cy=yy+sev.c
 if(i===0)s+=A.impactFlash(900,1380,{cx:cx+10,cy:cy-8,n:11,seed:2,color:RED});
 if(i===1){for(let k=0;k<6;k++)s+=`<line x1="${L+8}" y1="${yy+12+k*18}" x2="${cx-40-k*22}" y2="${cy-6+k*4}" stroke="${RED}" stroke-width="2.6"/>`;}
 if(i===2){for(let k=0;k<4;k++)s+=`<path d="M${L+20} ${yy+26+k*22} q 30 -8 60 0 t 60 0 t 60 0 t 60 0 t 60 0 t 60 0" stroke="${G2}" stroke-width="2.4" fill="none"/>`;s+=`<circle cx="${cx+90}" cy="${cy-30}" r="4" fill="none" stroke="${G2}" stroke-width="1.8"/><circle cx="${cx+108}" cy="${cy-46}" r="3" fill="none" stroke="${G2}" stroke-width="1.6"/>`;}
-s+=A.character({who:'mika',expr:expr[i],x:cx,y:cy,scale:.37,item:false,blink:false});
+s+=A.character({who:'mika',expr:expr[i],x:cx,y:cy,scale:.37,item:false,blink:false,breathe:false});
 if(i===3)s+=A.inkSplatter(900,1380,{cx:sev.cellX+sev.cellW*.72,cy:yy+sev.cellH*.45,n:10,maxR:5,spread:70,seed:4,color:RED});
 if(i===4){s+=`<rect x="${cx-56}" y="${cy-70}" width="112" height="104" fill="none" stroke="${RED}" stroke-width="2.4" stroke-dasharray="7 6"/>`;for(let k=0;k<5;k++)s+=`<line x1="${cx-46+k*22}" y1="${cy+40}" x2="${cx-30+k*22}" y2="${cy+8}" stroke="${G2}" stroke-width="2"/>`;}
 if(i===5){for(let k=0;k<7;k++)s+=`<line x1="${cx-70+k*24}" y1="${yy+6}" x2="${cx-70+k*24}" y2="${yy+sev.cellH-34}" stroke="${G1}" stroke-width="2.2"/>`;s+=`<line x1="${L+14}" y1="${yy+sev.cellH-12}" x2="${R-14}" y2="${yy+sev.cellH-12}" stroke="${INK}" stroke-width="5"/>`;s+=`<line x1="${cx-40}" y1="${yy+sev.cellH-20}" x2="${cx+40}" y2="${yy+sev.cellH-20}" stroke="${RED}" stroke-width="3.4"/>`;}
@@ -2865,9 +2882,37 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'title', chn: 'CHAPTER 02', text: CH, holdMs: 2600 },
     c => {
       c.camSnap(500, 750, 1, 0);
-      c.addPanel({ id: 'ask1', x: 52, y: 80, w: 440, h: 420, art: talkingHeads(440, 420, { who: 'mika', expr: 'determined', item: true }, { who: 'girl', expr: 'neutral' }), aria: 'Mika shows a sketch of Ren to a classmate' });
-      c.addPanel({ id: 'ask2', x: 508, y: 80, w: 440, h: 420, art: talkingHeads(440, 420, { who: 'mika', expr: 'determined', item: true }, { who: 'silhouette', expr: 'neutral' }), aria: 'Mika asks a stranger about Ren' });
-      c.addPanel({ id: 'ask3', x: 52, y: 530, w: 440, h: 420, art: talkingHeads(440, 420, { who: 'mika', expr: 'tired', item: true }, { who: 'kuroda', expr: 'neutral' }), aria: 'Mika asks an old man about Ren' });
+      c.addPanel({ id: 'ask1', x: 52, y: 80, w: 440, h: 420, art: (() => {
+        let s = `<rect width="440" height="420" fill="#d8d1bf"/>`;
+        s += `<rect width="440" height="420" fill="url(#fz-tone-10)" opacity=".2"/>`;
+        s += `<g opacity="0.45">${A.character({ who: 'girl', expr: 'neutral', x: 330, y: 200, scale: 1.15 })}</g>`;
+        s += `<rect x="30" y="180" width="200" height="260" fill="#fff" stroke="${INK}" stroke-width="5" transform="rotate(-6 130 310)"/>`;
+        s += `<g transform="rotate(-6 130 310)">${A.character({ who: 'ren', expr: 'neutral', x: 130, y: 340, scale: 0.72, breathe: false })}</g>`;
+        s += A.hand(96, 420, -18, 3.2);
+        s += A.vignette(440, 420, 0.8);
+        return A.svg(440, 420, s);
+      })(), aria: 'Mika holds out the sketch of Ren' });
+      c.addPanel({ id: 'ask2', x: 508, y: 80, w: 440, h: 420, art: (() => {
+        let s = `<rect width="440" height="420" fill="#d8d1bf"/>`;
+        s += `<rect width="440" height="420" fill="url(#fz-tone-10)" opacity=".2"/>`;
+        s += A.speedlines(440, 420, { cx: 120, cy: 200, n: 14, seed: 6, r0: 150, thick: 2, color: G2 });
+        s += A.character({ who: 'girl', expr: 'scared', x: 300, y: 260, scale: 1.35, flip: true });
+        s += `<path d="M352 130 q 10 18 0 30 q -10 -12 0 -30" fill="${G3}" stroke="${INK}" stroke-width="2"/>`;
+        s += `<path d="M376 150 q 8 14 0 24 q -8 -10 0 -24" fill="${G3}" stroke="${INK}" stroke-width="1.6"/>`;
+        s += A.vignette(440, 420, 0.85);
+        return A.svg(440, 420, s);
+      })(), aria: 'A classmate recoils from the sketch' });
+      c.addPanel({ id: 'ask3', x: 52, y: 530, w: 440, h: 420, art: (() => {
+        let s = `<rect width="440" height="420" fill="#c9c1ae"/>`;
+        s += `<rect width="440" height="420" fill="url(#fz-tone-25)" opacity=".25"/>`;
+        s += `<line x1="0" y1="330" x2="440" y2="330" stroke="${INK}" stroke-width="4"/>`;
+        s += A.character({ who: 'silhouette', expr: 'neutral', x: 290, y: 290, scale: 1.3, pose: 'back', breathe: false });
+        s += `<path d="M180 300 l -34 8 M184 322 l -30 12" stroke="${G1}" stroke-width="3"/>`;
+        s += `<text x="110" y="90" font-family="monospace" font-size="22" fill="${G1}">...sorry.</text>`;
+        s += A.dust(440, 420, { n: 24, seed: 12 });
+        s += A.vignette(440, 420, 0.9);
+        return A.svg(440, 420, s);
+      })(), aria: 'A stranger walks away without answering' });
       c.addPanel({ id: 'sketch', x: 508, y: 530, w: 440, h: 420, art: (() => {
         let s = `<rect width="440" height="420" fill="${PAPER}"/>`;
         s += `<rect x="60" y="30" width="320" height="360" fill="#fff" stroke="${INK}" stroke-width="5"/>`;
@@ -3312,6 +3357,15 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'show', panel: 'mikastairs', anim: 'left', dur: 500 }, { t: 'show', panel: 'sign', anim: 'right', dur: 500 },
     { t: 'say', who: 'MIKA', text: 'Ren said the discarded drafts pile up somewhere. Every erased thing has to go somewhere.', x: 500, y: 1250, w: 620, tail: 'left', style: 'thought' },
     { t: 'sfx', name: 'paperRustle' },
+    c => {
+      c.hotzone({ id: 'poster-peel', x: 140, y: 380, w: 130, h: 170, aria: 'Peel the torn poster', hint: true, onTap: () => {
+        FZ.audio.sfx.paperRustle();
+        const p = c.panel('st');
+        p.el.querySelectorAll('svg .fx-flicker').forEach(g => g.style.opacity = '0.25');
+        FZ.ui.caption('[ under the poster, someone wrote: THE TRAIN ONLY STOPS FOR CHARACTERS ]');
+        setTimeout(() => FZ.ui.caption(''), 3400);
+      } });
+    },
     { t: 'tap' }
   ] });
 
@@ -3358,6 +3412,18 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'show', panel: 'd3', anim: 'left', dur: 500 }, { t: 'show', panel: 'd4', anim: 'right', dur: 500 },
     { t: 'amb', name: 'drone', arg: -4 }, { t: 'particles', mode: 'dust' },
     { t: 'narr', text: 'FOUR DISTRICTS. EVERY DRAFT THAT WAS EVER THROWN AWAY.', x: 500, y: 1470, w: 760 },
+    c => {
+      const W = ['"we still remember the real sky"', '"we were never given names"', '"they call for sisters in their sleep"', '"we only wanted an ending"'];
+      const P = [{ x: 52, y: 80 }, { x: 508, y: 80 }, { x: 52, y: 620 }, { x: 508, y: 620 }];
+      P.forEach((pp, i) => c.hotzone({ id: 'district-' + i, x: pp.x, y: pp.y, w: 440, h: 500, aria: 'Listen to district ' + (i + 1), hint: true, onTap: () => {
+        FZ.audio.sfx.breathIn();
+        const panel = c.panel('d' + (i + 1));
+        panel.el.classList.add('red-border');
+        setTimeout(() => panel.el.classList.remove('red-border'), 1600);
+        FZ.ui.caption(W[i]);
+        setTimeout(() => FZ.ui.caption(''), 2600);
+      } }));
+    },
     { t: 'tap' }
   ] });
 
@@ -3795,6 +3861,20 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
     { t: 'show', panel: 'walk', anim: 'up', dur: 600 },
     { t: 'say', who: 'REN', text: 'This is where it decides. Everything unwritten waits here.', x: 560, y: 1250, w: 480, tail: 'left' },
+    c => {
+      c.hotzone({ id: 'white-tap', x: 52, y: 80, w: 896, h: 860, aria: 'Touch the white', hint: true, onTap: ev => {
+        FZ.audio.sfx.chime();
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const svg = c.panel('white').el.querySelector('svg');
+        const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+        const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+        ring.setAttribute('cx', loc.x); ring.setAttribute('cy', loc.y); ring.setAttribute('r', '10');
+        ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', '#a4161a'); ring.setAttribute('stroke-width', '3');
+        ring.innerHTML = '<animate attributeName="r" from="10" to="180" dur="1.4s" fill="freeze"/><animate attributeName="opacity" from="0.8" to="0" dur="1.4s" fill="freeze"/>';
+        svg.appendChild(ring);
+        setTimeout(() => ring.remove(), 1500);
+      } });
+    },
     { t: 'tap' }
   ] });
 
@@ -3912,6 +3992,24 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'say', who: 'THE EDITOR', text: 'Finish the book, burn it, or leave it breathing. You may choose. That is more than any of us were given.', x: 500, y: 1150, w: 700, tail: 'up' },
     { t: 'wait', ms: 1800 }, { t: 'clearDlg' },
     { t: 'say', who: 'MIKA', text: 'Ren. Whatever you are. Stay close.', x: 500, y: 1310, w: 420, tail: 'up', style: 'thought' },
+    c => {
+      const art = expr => {
+        let s = `<rect width="896" height="640" fill="#f3f0e8"/>`;
+        s += `<rect x="300" y="90" width="296" height="420" fill="${PAPER}" stroke="${INK}" stroke-width="6"/>`;
+        s += `<g opacity="0.75">${A.character({ who: 'yuna', expr, x: 448, y: 340, scale: 1.3 })}</g>`;
+        s += `<rect x="300" y="90" width="296" height="420" fill="url(#fz-tone-25)" opacity=".3"/>`;
+        s += `<path d="M300 300 L596 300 M448 90 L448 510" stroke="${G2}" stroke-width="2" stroke-dasharray="5 6"/>`;
+        s += A.vignette(896, 640, 0.7);
+        return A.svg(896, 640, s);
+      };
+      let busy = false;
+      c.hotzone({ id: 'yuna-eyes', x: 340, y: 130, w: 380, h: 500, aria: 'Touch Yuna\u2019s panel', hint: true, onTap: () => {
+        if (busy) return; busy = true;
+        FZ.audio.sfx.heartbeat(true);
+        c.setArt('yunaheld', art('sad'));
+        setTimeout(() => { c.setArt('yunaheld', art('closed')); FZ.audio.stopHeartbeat(); busy = false; }, 1500);
+      } });
+    },
     { t: 'tap' }
   ] });
 
@@ -3976,99 +4074,4 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
       c.camSnap(500, 750, 1, 0);
       c.addPanel({ id: 'erasing', x: 52, y: 80, w: 896, h: 900, art: B.whiteSpace(896, 900, { fragments: 14 }), aria: 'Everything dissolving into white' });
     },
-    { t: 'show', panel: 'erasing', anim: 'fade', dur: 900 }, { t: 'amb', name: 'voidSpace' }, { t: 'fx', name: 'whiteout', on: true, slow: true },
-    { t: 'narr', text: 'THE BOOK FORGAVE THEM BY FORGETTING THEM.', x: 500, y: 1470, w: 600 },
-    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
-    c => FZ.engine.FX.whiteout(false, true),
-    { t: 'narr', text: 'NO CLOCKS STOP. NO SISTERS VANISH. NO BOYS LIVE BETWEEN PANELS.', x: 500, y: 700, w: 720 },
-    { t: 'wait', ms: 1700 }, { t: 'clearDlg' },
-    { t: 'narr', text: 'NOTHING WAS EVER WRITTEN. NOTHING WAS EVER LOST.', x: 500, y: 830, w: 660, style: 'narr red' },
-    { t: 'sfx', name: 'breathIn' },
-    { t: 'tap' }
-  ] });
-
-  /* ENDING: unfinished ---------------------------------------------- */
-  S.add({ id: 'ch5_end_unfinished', ch: 5, chapterTitle: CH, next: 'ch5_coda', beats: [
-    c => {
-      c.camSnap(500, 750, 1, 0);
-      c.addPanel({ id: 'between', x: 52, y: 80, w: 896, h: 900, art: (() => {
-        let s = `<rect width="896" height="900" fill="#f3f0e8"/>`;
-        s += `<rect width="896" height="900" fill="url(#fz-weave)" opacity=".3"/>`;
-        s += A.character({ who: 'mika', expr: 'smile', x: 300, y: 560, scale: 1.6, item: true });
-        s += A.character({ who: 'yuna', expr: 'smile', x: 500, y: 560, scale: 1.6 });
-        s += A.character({ who: 'ren', expr: 'smile', x: 660, y: 560, scale: 1.6, flip: true });
-        s += `<rect x="180" y="200" width="536" height="560" fill="none" stroke="${INK}" stroke-width="6" stroke-dasharray="14 10"/>`;
-        s += `<text x="448" y="150" text-anchor="middle" font-family="monospace" font-size="24" letter-spacing="5" fill="${G1}">A PANEL LEFT OPEN</text>`;
-        s += A.vignette(896, 900, 0.6);
-        return A.svg(896, 900, s);
-      })(), aria: 'Mika, Yuna and Ren inside a panel left open' });
-    },
-    { t: 'show', panel: 'between', anim: 'fade', dur: 1000 }, { t: 'amb', name: 'hum' }, { t: 'particles', mode: 'dust' },
-    { t: 'narr', text: 'THE STORY NEVER ENDS, SO NO ONE IN IT EVER HAS TO LEAVE.', x: 500, y: 1470, w: 720 },
-    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
-    { t: 'say', who: 'MIKA', text: 'We\u2019ll finish it ourselves. Slowly. When we feel like it.', x: 500, y: 1150, w: 520, tail: 'up' },
-    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
-    { t: 'narr', text: 'THE EDITOR READS OVER THEIR SHOULDERS, AND FOR THE FIRST TIME, DOES NOT CORRECT.', x: 500, y: 1310, w: 760 },
-    { t: 'tap' }
-  ] });
-
-  /* CODA: frame 000 -------------------------------------------------- */
-  S.add({ id: 'ch5_coda', ch: 5, chapterTitle: CH, next: null, beats: [
-    c => {
-      c.camSnap(500, 750, 1, 0);
-      c.addPanel({ id: 'emptypanel', x: 140, y: 200, w: 720, h: 720, art: (() => {
-        let s = `<rect width="720" height="720" fill="${PAPER}"/>`;
-        s += `<rect x="30" y="30" width="660" height="660" fill="none" stroke="${G2}" stroke-width="2" stroke-dasharray="10 9"/>`;
-        s += `<line id="fz-cursor" x1="360" y1="330" x2="360" y2="390" stroke="${INK}" stroke-width="6" class="fz-blink"/>`;
-        s += `<rect width="720" height="720" fill="none" stroke="${INK}" stroke-width="8"/>`;
-        return A.svg(720, 720, s);
-      })(), aria: 'An empty panel. A cursor moves inside it, writing nothing yet.' });
-      c.addPanel({ id: 'frame000', x: 140, y: 960, w: 720, h: 200, border: 'none', cls: 'no-border', art: A.svg(720, 200, `<text x="360" y="120" text-anchor="middle" font-family="monospace" font-size="44" letter-spacing="10" fill="${RED}">FRAME 000</text>`), aria: 'FRAME 000' });
-    },
-    { t: 'show', panel: 'emptypanel', anim: 'fade', dur: 1200 }, { t: 'amb', name: 'none' }, { t: 'corrupt', v: 0 },
-    { t: 'wait', ms: 1400 },
-    { t: 'show', panel: 'frame000', anim: 'fade', dur: 900 }, { t: 'sfx', name: 'inkScratch' },
-    { t: 'wait', ms: 1600 },
-    c => FZ.ui.showEndCard()
-  ] });
-})();
-
-/* ============================================================
-   FRAME ZERO - 30-boot.js
-   Assembly + boot. Story registry lives here (chapters populate it).
-   ============================================================ */
-'use strict';
-(function boot() {
-  const U = FZ.util, E = FZ.engine;
-  const $ = U.$;
-
-  function init() {
-    // layers
-    E.Camera.init($('#fz-camera'));
-    E.Panels.init($('#fz-panels'));
-    E.Dialogue.init($('#fz-dialogue'));
-    E.Particles.init($('#fz-fxcanvas'));
-    E.FX.init($('#fz-pagefx'), $('#fz-shake-wrap'));
-    E.Interact.init($('#fz-hotzones'));
-
-    E.Save.load();
-    E.Settings.init(E.Save.data.settings);
-    FZ.ui.build();
-    FZ.ui.Debug.init();
-    FZ.ui.refreshSoundIcon();
-
-    // resume hint
-    FZ.ui.showTitle();
-
-    // unlock chapters as the reader reaches them
-    U.bus.on('save:updated', d => {
-      if (d.ch > d.unlockedCh) { d.unlockedCh = d.ch; U.storeSave(d); }
-    });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-})();
-</script>
-</body>
-</html>
+    { t: 'show', panel: 'erasing', anim: 'fade', dur: 900 }, { t: 'amb', name: 'voidSpace'
