@@ -4074,4 +4074,99 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
       c.camSnap(500, 750, 1, 0);
       c.addPanel({ id: 'erasing', x: 52, y: 80, w: 896, h: 900, art: B.whiteSpace(896, 900, { fragments: 14 }), aria: 'Everything dissolving into white' });
     },
-    { t: 'show', panel: 'erasing', anim: 'fade', dur: 900 }, { t: 'amb', name: 'voidSpace'
+    { t: 'show', panel: 'erasing', anim: 'fade', dur: 900 }, { t: 'amb', name: 'voidSpace' }, { t: 'fx', name: 'whiteout', on: true, slow: true },
+    { t: 'narr', text: 'THE BOOK FORGAVE THEM BY FORGETTING THEM.', x: 500, y: 1470, w: 600 },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    c => FZ.engine.FX.whiteout(false, true),
+    { t: 'narr', text: 'NO CLOCKS STOP. NO SISTERS VANISH. NO BOYS LIVE BETWEEN PANELS.', x: 500, y: 700, w: 720 },
+    { t: 'wait', ms: 1700 }, { t: 'clearDlg' },
+    { t: 'narr', text: 'NOTHING WAS EVER WRITTEN. NOTHING WAS EVER LOST.', x: 500, y: 830, w: 660, style: 'narr red' },
+    { t: 'sfx', name: 'breathIn' },
+    { t: 'tap' }
+  ] });
+
+  /* ENDING: unfinished ---------------------------------------------- */
+  S.add({ id: 'ch5_end_unfinished', ch: 5, chapterTitle: CH, next: 'ch5_coda', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'between', x: 52, y: 80, w: 896, h: 900, art: (() => {
+        let s = `<rect width="896" height="900" fill="#f3f0e8"/>`;
+        s += `<rect width="896" height="900" fill="url(#fz-weave)" opacity=".3"/>`;
+        s += A.character({ who: 'mika', expr: 'smile', x: 300, y: 560, scale: 1.6, item: true });
+        s += A.character({ who: 'yuna', expr: 'smile', x: 500, y: 560, scale: 1.6 });
+        s += A.character({ who: 'ren', expr: 'smile', x: 660, y: 560, scale: 1.6, flip: true });
+        s += `<rect x="180" y="200" width="536" height="560" fill="none" stroke="${INK}" stroke-width="6" stroke-dasharray="14 10"/>`;
+        s += `<text x="448" y="150" text-anchor="middle" font-family="monospace" font-size="24" letter-spacing="5" fill="${G1}">A PANEL LEFT OPEN</text>`;
+        s += A.vignette(896, 900, 0.6);
+        return A.svg(896, 900, s);
+      })(), aria: 'Mika, Yuna and Ren inside a panel left open' });
+    },
+    { t: 'show', panel: 'between', anim: 'fade', dur: 1000 }, { t: 'amb', name: 'hum' }, { t: 'particles', mode: 'dust' },
+    { t: 'narr', text: 'THE STORY NEVER ENDS, SO NO ONE IN IT EVER HAS TO LEAVE.', x: 500, y: 1470, w: 720 },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    { t: 'say', who: 'MIKA', text: 'We\u2019ll finish it ourselves. Slowly. When we feel like it.', x: 500, y: 1150, w: 520, tail: 'up' },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'narr', text: 'THE EDITOR READS OVER THEIR SHOULDERS, AND FOR THE FIRST TIME, DOES NOT CORRECT.', x: 500, y: 1310, w: 760 },
+    { t: 'tap' }
+  ] });
+
+  /* CODA: frame 000 -------------------------------------------------- */
+  S.add({ id: 'ch5_coda', ch: 5, chapterTitle: CH, next: null, beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'emptypanel', x: 140, y: 200, w: 720, h: 720, art: (() => {
+        let s = `<rect width="720" height="720" fill="${PAPER}"/>`;
+        s += `<rect x="30" y="30" width="660" height="660" fill="none" stroke="${G2}" stroke-width="2" stroke-dasharray="10 9"/>`;
+        s += `<line id="fz-cursor" x1="360" y1="330" x2="360" y2="390" stroke="${INK}" stroke-width="6" class="fz-blink"/>`;
+        s += `<rect width="720" height="720" fill="none" stroke="${INK}" stroke-width="8"/>`;
+        return A.svg(720, 720, s);
+      })(), aria: 'An empty panel. A cursor moves inside it, writing nothing yet.' });
+      c.addPanel({ id: 'frame000', x: 140, y: 960, w: 720, h: 200, border: 'none', cls: 'no-border', art: A.svg(720, 200, `<text x="360" y="120" text-anchor="middle" font-family="monospace" font-size="44" letter-spacing="10" fill="${RED}">FRAME 000</text>`), aria: 'FRAME 000' });
+    },
+    { t: 'show', panel: 'emptypanel', anim: 'fade', dur: 1200 }, { t: 'amb', name: 'none' }, { t: 'corrupt', v: 0 },
+    { t: 'wait', ms: 1400 },
+    { t: 'show', panel: 'frame000', anim: 'fade', dur: 900 }, { t: 'sfx', name: 'inkScratch' },
+    { t: 'wait', ms: 1600 },
+    c => FZ.ui.showEndCard()
+  ] });
+})();
+
+/* ============================================================
+   FRAME ZERO - 30-boot.js
+   Assembly + boot. Story registry lives here (chapters populate it).
+   ============================================================ */
+'use strict';
+(function boot() {
+  const U = FZ.util, E = FZ.engine;
+  const $ = U.$;
+
+  function init() {
+    // layers
+    E.Camera.init($('#fz-camera'));
+    E.Panels.init($('#fz-panels'));
+    E.Dialogue.init($('#fz-dialogue'));
+    E.Particles.init($('#fz-fxcanvas'));
+    E.FX.init($('#fz-pagefx'), $('#fz-shake-wrap'));
+    E.Interact.init($('#fz-hotzones'));
+
+    E.Save.load();
+    E.Settings.init(E.Save.data.settings);
+    FZ.ui.build();
+    FZ.ui.Debug.init();
+    FZ.ui.refreshSoundIcon();
+
+    // resume hint
+    FZ.ui.showTitle();
+
+    // unlock chapters as the reader reaches them
+    U.bus.on('save:updated', d => {
+      if (d.ch > d.unlockedCh) { d.unlockedCh = d.ch; U.storeSave(d); }
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>
