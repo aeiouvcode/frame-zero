@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QV5hL+voupxQJcmc8lMTQ/ehGAviYu4aj/phcwJyUJA='; style-src 'sha256-deLLgNg2WXeC2yqpIr84infOZWj9V3eAlKiarN9coAo='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-s7E+r3K4qn05jTcdCW/qx8PyDcOkq0YlTbHR65XUU6k='; style-src 'sha256-0lRQQNnMt8bhQhlKtcqcDszqXvHyUFS0RE0SWoHX8A4='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -318,7 +318,7 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 /* ---------- OVERLAY SCREENS (title / settings / clues / chapters) ---------- */
 .fz-overlay {
   position: fixed; inset: 0; z-index: 80;
-  background: rgba(8,7,5,.94);
+  background: #080705;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   color: var(--ui-fg); font-family: var(--ui-font);
   padding: 24px;
@@ -371,6 +371,9 @@ input.fz-range { width: 130px; accent-color: var(--red); }
 .chapter-item .log { display: block; font-size: 11px; opacity: .5; letter-spacing: 1px; margin-top: 5px; }
 #fz-title-progress { margin-top: 16px; font-family: var(--ui-font); font-size: 11.5px; letter-spacing: 3px; color: var(--red); opacity: .7; }
 #fz-title-art .mote { opacity: 0; animation: fz-mote linear infinite; }
+@keyframes fz-choice-in { from { opacity: 0; transform: translateY(14px); } }
+@keyframes fz-row-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes fz-end-in { from { opacity: 0; transform: translateY(12px); } }
 @keyframes fz-mote { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .62; } 88% { opacity: .62; } 100% { transform: translateY(-240px); opacity: 0; } }
 #fz-title-word { animation: fz-titleglitch 9s linear infinite; }
 @keyframes fz-titleglitch {
@@ -400,8 +403,9 @@ body.motion-reduced #fz-title-art .mote, body.motion-reduced #fz-title-word { an
 #fz-ending-overlay .end-rule { width: 120px; height: 2px; background: var(--red); margin-bottom: 22px; }
 #fz-ending-overlay .end-epilogue { max-width: 520px; text-align: center; line-height: 1.8; opacity: .85; margin: 0 0 26px; font-size: 15px; }
 #fz-ending-overlay .end-stats { letter-spacing: 4px; font-size: 13px; color: var(--ui-fg); opacity: .65; margin-bottom: 16px; }
-#fz-ending-overlay .end-clues { max-width: 560px; margin-bottom: 30px; font-size: 12.5px; line-height: 2.1; text-align: center; opacity: .8; }
-#fz-ending-overlay .end-clues .locked { opacity: .35; }
+#fz-ending-overlay .end-clues { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: min(440px, 92vw); margin-bottom: 30px; font-size: 11px; line-height: 1.45; text-align: center; opacity: .8; }
+#fz-ending-overlay .end-clues span { padding: 6px 8px; border: 1px solid rgba(233,228,214,.14); border-radius: 3px; letter-spacing: 1px; }
+#fz-ending-overlay .end-clues .locked { opacity: .3; border-style: dashed; }
 #fz-ending-overlay .end-epilogue, #fz-ending-overlay .end-clues { text-wrap: balance; }
 #fz-ending-overlay .end-btns { display: flex; flex-direction: column; gap: 12px; width: min(320px, 80vw); }
 #fz-ending-overlay .end-btns .fz-btn { font-size: 15px; padding: 13px; }
@@ -425,7 +429,19 @@ body.motion-reduced #fz-title-art .mote, body.motion-reduced #fz-title-word { an
 }
 .choice-opt .co-label { font-size: 18px; letter-spacing: 4px; margin-bottom: 6px; }
 .choice-opt .co-sub { font-size: 12.5px; opacity: .6; line-height: 1.5; }
+.choice-opt { animation: fz-choice-in 380ms cubic-bezier(.22,1,.36,1) both; }
 .choice-opt:hover, .choice-opt:focus-visible { border-color: var(--red); transform: translateX(4px); }
+.choice-opt:active { transform: scale(.98); }
+.fz-btn:active { transform: scale(.97); }
+.chapter-item { animation: fz-row-in 340ms cubic-bezier(.22,1,.36,1) both; }
+#fz-ending-overlay > * { animation: fz-end-in 520ms cubic-bezier(.22,1,.36,1) both; }
+#fz-ending-overlay > *:nth-child(2) { animation-delay: 80ms; }
+#fz-ending-overlay > *:nth-child(3) { animation-delay: 160ms; }
+#fz-ending-overlay > *:nth-child(4) { animation-delay: 240ms; }
+#fz-ending-overlay > *:nth-child(5) { animation-delay: 320ms; }
+#fz-ending-overlay > *:nth-child(6) { animation-delay: 400ms; }
+#fz-ending-overlay > *:nth-child(7) { animation-delay: 480ms; }
+body.motion-reduced .choice-opt, body.motion-reduced .chapter-item, body.motion-reduced #fz-ending-overlay > * { animation: none; }
 .choice-opt.predrawn { position: relative; }
 .choice-opt.predrawn::after {
   content: '— already drawn'; position: absolute; right: 12px; top: 10px;
@@ -494,6 +510,8 @@ body.motion-reduced #fz-next-hint { animation: none; }
 /* low-tier perf: strip expensive paint work */
 .tier-low #fz-page { box-shadow: 0 0 26px rgba(0,0,0,.55); }
 .tier-low .fx-breach, .tier-low .panel-pulse { animation: none !important; }
+body.choice-open #fz-dialogue { opacity: 0; pointer-events: none; }
+#fz-dialogue { transition: opacity 220ms ease; }
 .tier-low .fz-overlay, .tier-low #fz-caption-line { backdrop-filter: none !important; }
 .tier-low .panel { will-change: auto; }
 .tier-low .fx-drift { animation-duration: 9s; }
@@ -2198,6 +2216,8 @@ FZ.engine = (function () {
     },
 
     goto(sceneId) {
+      document.getElementById('fz-choice').classList.remove('on');
+      document.body.classList.remove('choice-open');
       if (!sceneId) { FZ.ui.showEndCard(); return; }
       const pt = document.getElementById('fz-pageturn');
       if (pt && this.currentScene && Settings.values.motion !== 'reduced') { pt.classList.remove('turn'); void pt.offsetWidth; pt.classList.add('turn'); }
@@ -2553,6 +2573,7 @@ FZ.ui = (function () {
     for (let ch = 1; ch <= 5; ch++) {
       const open = ch <= unlocked;
       const b = U.el('button', 'fz-btn chapter-item' + (open ? '' : ' locked'), list);
+      b.style.animationDelay = ((ch - 1) * 45) + 'ms';
       b.innerHTML = `<span class="ct"><span class="chn">0${ch}</span><span>${open ? CHAPTER_TITLES[ch] : '??????'}${open ? '<span class="log">' + CHAPTER_LOGS[ch] + '</span>' : ''}</span></span><span class="st">${open ? (ch < unlocked ? 'READ' : 'CURRENT') : 'SEALED'}</span>`;
       if (open) b.addEventListener('click', () => {
         closeOverlays();
@@ -2594,16 +2615,19 @@ FZ.ui = (function () {
       box.querySelector('.choice-prompt').textContent = prompt;
       const list = box.querySelector('.choice-list');
       list.innerHTML = '';
-      options.forEach(o => {
+      options.forEach((o, i) => {
         const b = U.el('button', 'choice-opt' + (o.predrawn ? ' predrawn' : ''), list);
+        b.style.animationDelay = (i * 60) + 'ms';
         b.innerHTML = `<div class="co-label">${U.escapeHtml(o.label)}</div><div class="co-sub">${U.escapeHtml(o.sub || '')}</div>`;
         b.addEventListener('click', () => {
           box.classList.remove('on');
+          document.body.classList.remove('choice-open');
           FZ.audio.sfx.impact();
           res(o.id);
         });
       });
       box.classList.add('on');
+      document.body.classList.add('choice-open');
     });
   }
 
@@ -2621,14 +2645,26 @@ FZ.ui = (function () {
     U.$('#fz-end-chn').textContent = e ? 'ENDING \u2014 ' + Object.keys(seen).length + ' OF 3 SEEN' : 'FRAME ZERO';
     U.$('#fz-end-title').textContent = e ? e.name : 'FRAME ZERO';
     U.$('#fz-end-epilogue').textContent = e ? e.ep : '';
-    U.$('#fz-end-stats').textContent = 'SECRETS FOUND: ' + FZ.engine.Save.clueCount() + ' / ' + Object.keys(CLUE_BOOK).length;
+    const clueTotal = Object.keys(CLUE_BOOK).length, clueFound = FZ.engine.Save.clueCount();
+    const statsEl = U.$('#fz-end-stats');
+    if (FZ.engine.Settings.values.motion === 'reduced') {
+      statsEl.textContent = 'SECRETS FOUND: ' + clueFound + ' / ' + clueTotal;
+    } else {
+      const t0 = performance.now();
+      const countStep = (t) => {
+        const k = Math.min(1, (t - t0) / 800);
+        statsEl.textContent = 'SECRETS FOUND: ' + Math.round((1 - Math.pow(1 - k, 3)) * clueFound) + ' / ' + clueTotal;
+        if (k < 1) requestAnimationFrame(countStep);
+      };
+      requestAnimationFrame(countStep);
+    }
     const cl = U.$('#fz-end-clues');
     const names = [];
     for (const id in CLUE_BOOK) {
       const got = FZ.engine.Save.hasClue(id);
       names.push('<span class="' + (got ? '' : 'locked') + '">' + (got ? CLUE_BOOK[id].name : '???') + '</span>');
     }
-    cl.innerHTML = names.join(' \u00B7 ');
+    cl.innerHTML = names.join('');
     closeOverlays();
     U.$('#fz-ending-overlay').classList.remove('hidden');
     FZ.audio.sfx.pageTurn();
