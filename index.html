@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BUciUoCSfO797Po0saPYQ7sR4fMdqNhm16keOZe+HeI='; style-src 'sha256-P7LnjaYrfLKN3ccGlCf97RRe+xOm/4fsWUH6lsJebW8='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BUciUoCSfO797Po0saPYQ7sR4fMdqNhm16keOZe+HeI='; style-src 'sha256-frW+JubVbwkkGfO1uE8Pn/ozzB9hKkuGcO2MMyRKKls='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -326,6 +326,7 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 
 /* title screen */
 #fz-title-screen { z-index: 90; }
+#fz-title-screen, #fz-ending-overlay { background: #080705; }
 #fz-title-art { width: min(420px, 78vw); margin-bottom: 18px; }
 #fz-title-word {
   font-family: var(--serif-font); font-size: clamp(34px, 9vw, 64px);
@@ -334,10 +335,10 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
   margin: 8px 0 2px;
 }
 #fz-title-word .rz { color: var(--red); }
-#fz-title-sub { font-size: 13px; letter-spacing: 4px; opacity: .6; margin-bottom: 42px; }
+#fz-title-sub { font-size: clamp(10px, 2.95vw, 11.5px); letter-spacing: clamp(2px, .8vw, 3px); white-space: nowrap; opacity: .6; margin-bottom: 42px; }
 #fz-title-menu { display: flex; flex-direction: column; gap: 14px; width: min(300px, 80vw); }
 #fz-title-menu .fz-btn { font-size: 17px; padding: 14px; }
-#fz-title-foot { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom)); font-size: 11px; letter-spacing: 2px; opacity: .35; }
+#fz-title-foot { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom)); font-size: 11px; letter-spacing: 2px; opacity: .35; padding: 0 30px; text-align: center; line-height: 1.8; max-width: 430px; }
 
 /* settings rows */
 .set-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid rgba(233,228,214,.12); font-size: 14px; letter-spacing: 1px; }
