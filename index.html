@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BUciUoCSfO797Po0saPYQ7sR4fMdqNhm16keOZe+HeI='; style-src 'sha256-YHKDPgywIXYaYKFE/fucP6VxSnH/kEVtjnW0zHPzyJY='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QV5hL+voupxQJcmc8lMTQ/ehGAviYu4aj/phcwJyUJA='; style-src 'sha256-deLLgNg2WXeC2yqpIr84infOZWj9V3eAlKiarN9coAo='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -282,6 +282,8 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 .fz-btn:disabled { opacity: .3; cursor: default; }
 .fz-btn:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .fz-btn.primary { background: var(--ui-fg); color: #14110d; font-weight: bold; }
+#fz-next { background: transparent; color: var(--ui-fg); font-weight: normal; opacity: .85; }
+#fz-next:active { opacity: 1; }
 #fz-next-hint {
   position: absolute; bottom: calc(76px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
   color: rgba(233,228,214,.5); font-size: 13px; letter-spacing: 3px;
@@ -291,7 +293,9 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 .ui-right {
   position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
   display: flex; flex-direction: column; gap: 10px;
+  opacity: .5; transition: opacity 250ms ease;
 }
+.ui-right:focus-within, .ui-right:hover, .ui-right:active { opacity: 1; }
 .fz-icon-btn {
   width: 46px; height: 46px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -357,14 +361,17 @@ input.fz-range { width: 130px; accent-color: var(--red); }
 .clue-item.locked .clue-desc { opacity: .18; }
 
 /* chapter select */
-.chapter-item { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; padding: 16px 18px; margin-bottom: 10px; font-size: 15px; }
+.chapter-item { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; text-align: left; padding: 16px 18px; margin-bottom: 10px; font-size: 15px; }
+.chapter-item .ct { display: flex; flex: 1; padding-right: 14px; }
+.chapter-item .chn { min-width: 32px; }
+.chapter-item .st { padding-top: 2px; }
 .chapter-item .chn { color: var(--red); margin-right: 12px; }
 .chapter-item.locked { opacity: .3; }
 .chapter-item .st { font-size: 11px; opacity: .6; letter-spacing: 2px; }
-.chapter-item .log { display: block; font-size: 11px; opacity: .5; letter-spacing: 1px; margin-top: 5px; margin-left: 30px; }
+.chapter-item .log { display: block; font-size: 11px; opacity: .5; letter-spacing: 1px; margin-top: 5px; }
 #fz-title-progress { margin-top: 16px; font-family: var(--ui-font); font-size: 11.5px; letter-spacing: 3px; color: var(--red); opacity: .7; }
 #fz-title-art .mote { opacity: 0; animation: fz-mote linear infinite; }
-@keyframes fz-mote { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .5; } 88% { opacity: .5; } 100% { transform: translateY(-240px); opacity: 0; } }
+@keyframes fz-mote { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .62; } 88% { opacity: .62; } 100% { transform: translateY(-240px); opacity: 0; } }
 #fz-title-word { animation: fz-titleglitch 9s linear infinite; }
 @keyframes fz-titleglitch {
   0%, 96%, 100% { transform: none; text-shadow: none; }
@@ -392,7 +399,7 @@ body.motion-reduced #fz-title-art .mote, body.motion-reduced #fz-title-word { an
 #fz-ending-overlay h2.end-title { font-family: var(--serif-font); font-size: clamp(30px, 8vw, 52px); letter-spacing: 6px; text-align: center; margin: 0 0 18px; font-weight: 400; }
 #fz-ending-overlay .end-rule { width: 120px; height: 2px; background: var(--red); margin-bottom: 22px; }
 #fz-ending-overlay .end-epilogue { max-width: 520px; text-align: center; line-height: 1.8; opacity: .85; margin: 0 0 26px; font-size: 15px; }
-#fz-ending-overlay .end-stats { letter-spacing: 4px; font-size: 13px; color: var(--red); margin-bottom: 16px; }
+#fz-ending-overlay .end-stats { letter-spacing: 4px; font-size: 13px; color: var(--ui-fg); opacity: .65; margin-bottom: 16px; }
 #fz-ending-overlay .end-clues { max-width: 560px; margin-bottom: 30px; font-size: 12.5px; line-height: 2.1; text-align: center; opacity: .8; }
 #fz-ending-overlay .end-clues .locked { opacity: .35; }
 #fz-ending-overlay .end-epilogue, #fz-ending-overlay .end-clues { text-wrap: balance; }
@@ -457,7 +464,7 @@ body.fz-debug #fz-debug { display: block; }
   bottom: calc(120px + env(safe-area-inset-bottom));
   z-index: 55; background: rgba(0,0,0,.78); color: #eee;
   font-family: var(--ui-font); font-size: 13px; letter-spacing: 1px;
-  padding: 6px 14px; border-radius: 4px; max-width: 88vw; text-align: center;
+  padding: 8px 16px; border-radius: 6px; max-width: 88vw; text-align: center;
   opacity: 0; transition: opacity 300ms ease; pointer-events: none;
 }
 #fz-caption-line.on { opacity: 1; }
@@ -2546,7 +2553,7 @@ FZ.ui = (function () {
     for (let ch = 1; ch <= 5; ch++) {
       const open = ch <= unlocked;
       const b = U.el('button', 'fz-btn chapter-item' + (open ? '' : ' locked'), list);
-      b.innerHTML = `<span><span class="chn">0${ch}</span> ${open ? CHAPTER_TITLES[ch] : '??????'}${open ? '<span class="log">' + CHAPTER_LOGS[ch] + '</span>' : ''}</span><span class="st">${open ? (ch < unlocked ? 'READ' : 'CURRENT') : 'SEALED'}</span>`;
+      b.innerHTML = `<span class="ct"><span class="chn">0${ch}</span><span>${open ? CHAPTER_TITLES[ch] : '??????'}${open ? '<span class="log">' + CHAPTER_LOGS[ch] + '</span>' : ''}</span></span><span class="st">${open ? (ch < unlocked ? 'READ' : 'CURRENT') : 'SEALED'}</span>`;
       if (open) b.addEventListener('click', () => {
         closeOverlays();
         U.$('#fz-title-screen').classList.add('hidden');
