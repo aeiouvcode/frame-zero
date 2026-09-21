@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qkcnZFPgIsmPkO6LqPkvvZNig1H4As16i0HBDoKN6t0='; style-src 'sha256-g5u7iJkSOYoHXrepPq9jWEccmMwZRDOUHT7cbLUCo+k='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-1X9qWWkUSvphj2QiTwXVCl9dIgUGlhQNAXztGIa7QgY='; style-src 'sha256-P7LnjaYrfLKN3ccGlCf97RRe+xOm/4fsWUH6lsJebW8='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -360,6 +360,18 @@ input.fz-range { width: 130px; accent-color: var(--red); }
 .chapter-item .chn { color: var(--red); margin-right: 12px; }
 .chapter-item.locked { opacity: .3; }
 .chapter-item .st { font-size: 11px; opacity: .6; letter-spacing: 2px; }
+.chapter-item .log { display: block; font-size: 11px; opacity: .5; letter-spacing: 1px; margin-top: 5px; margin-left: 30px; }
+#fz-title-progress { margin-top: 16px; font-family: var(--ui-font); font-size: 11.5px; letter-spacing: 3px; color: var(--red); opacity: .7; }
+#fz-title-art .mote { opacity: 0; animation: fz-mote linear infinite; }
+@keyframes fz-mote { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .5; } 88% { opacity: .5; } 100% { transform: translateY(-240px); opacity: 0; } }
+#fz-title-word { animation: fz-titleglitch 9s linear infinite; }
+@keyframes fz-titleglitch {
+  0%, 96%, 100% { transform: none; text-shadow: none; }
+  96.6% { transform: translateX(2px) skewX(-2deg); text-shadow: -3px 0 var(--red); }
+  97.4% { transform: translateX(-2px); text-shadow: 3px 0 var(--red); }
+  98% { transform: none; text-shadow: none; }
+}
+body.motion-reduced #fz-title-art .mote, body.motion-reduced #fz-title-word { animation: none !important; }
 
 /* ---------- CHAPTER TITLE CARD ---------- */
 #fz-chapter-card {
@@ -2234,6 +2246,13 @@ FZ.ui = (function () {
     4: 'SEVEN VERSIONS OF MIKA',
     5: 'FRAME ZERO'
   };
+  const CHAPTER_LOGS = {
+    1: 'A manuscript nobody remembers writing.',
+    2: 'Someone in the margins knows your name.',
+    3: 'Every draft that was ever thrown away.',
+    4: 'They had been arguing since the page dried.',
+    5: 'The room between the last panel and the end of the page.'
+  };
 
   const CLUE_BOOK = {
     'clock-213': { name: '2:13', desc: 'The archive clock never moved. You watched it not move, five times. It noticed.' },
@@ -2310,6 +2329,13 @@ FZ.ui = (function () {
           <line x1="170" y1="212" x2="312" y2="212" stroke="#16130f" stroke-width="5"/>
           <line x1="60" y1="255" x2="340" y2="255" stroke="#a4161a" stroke-width="3"/>
           <circle cx="336" cy="40" r="7" fill="none" stroke="#a4161a" stroke-width="3"/>
+          <circle class="mote" cx="90" cy="270" r="2.2" fill="#16130f" style="animation-duration:11s;animation-delay:0s"/>
+          <circle class="mote" cx="160" cy="285" r="1.6" fill="#16130f" style="animation-duration:14s;animation-delay:-4s"/>
+          <circle class="mote" cx="230" cy="275" r="2.6" fill="#16130f" style="animation-duration:12s;animation-delay:-7s"/>
+          <circle class="mote" cx="300" cy="290" r="1.8" fill="#16130f" style="animation-duration:16s;animation-delay:-2s"/>
+          <circle class="mote" cx="120" cy="280" r="1.4" fill="#a4161a" style="animation-duration:13s;animation-delay:-9s"/>
+          <circle class="mote" cx="270" cy="268" r="1.5" fill="#16130f" style="animation-duration:10s;animation-delay:-5s"/>
+          <circle class="mote" cx="345" cy="282" r="2" fill="#16130f" style="animation-duration:15s;animation-delay:-11s"/>
         </svg>
         <div id="fz-title-word">FRAME <span class="rz">ZERO</span></div>
         <div id="fz-title-sub">AN INTERACTIVE ANIMATED MANGA</div>
@@ -2319,6 +2345,7 @@ FZ.ui = (function () {
           <button class="fz-btn" id="fz-title-chapters">CHAPTERS</button>
           <button class="fz-btn" id="fz-title-settings">SETTINGS</button>
         </div>
+        <div id="fz-title-progress"></div>
         <div id="fz-title-foot">HEADPHONES RECOMMENDED - SOUND STARTS AFTER FIRST TAP</div>
       </div>
       <div class="fz-overlay hidden" id="fz-settings-overlay" role="dialog" aria-label="Settings">
@@ -2516,7 +2543,7 @@ FZ.ui = (function () {
     for (let ch = 1; ch <= 5; ch++) {
       const open = ch <= unlocked;
       const b = U.el('button', 'fz-btn chapter-item' + (open ? '' : ' locked'), list);
-      b.innerHTML = `<span><span class="chn">0${ch}</span> ${open ? CHAPTER_TITLES[ch] : '??????'}</span><span class="st">${open ? (ch < unlocked ? 'READ' : 'CURRENT') : 'SEALED'}</span>`;
+      b.innerHTML = `<span><span class="chn">0${ch}</span> ${open ? CHAPTER_TITLES[ch] : '??????'}${open ? '<span class="log">' + CHAPTER_LOGS[ch] + '</span>' : ''}</span><span class="st">${open ? (ch < unlocked ? 'READ' : 'CURRENT') : 'SEALED'}</span>`;
       if (open) b.addEventListener('click', () => {
         closeOverlays();
         U.$('#fz-title-screen').classList.add('hidden');
@@ -2543,6 +2570,9 @@ FZ.ui = (function () {
     const has = d.unlockedCh > 1 || d.sceneIdx > 0 || d.ch > 1;
     U.$('#fz-continue').style.display = has ? '' : 'none';
     U.$('#fz-title-screen').classList.remove('hidden');
+    const endN = Object.keys(d.endings || {}).length;
+    const clueN = FZ.engine.Save.clueCount();
+    U.$('#fz-title-progress').textContent = (clueN || endN) ? 'SECRETS ' + clueN + ' / ' + Object.keys(CLUE_BOOK).length + ' \u00B7 ENDINGS ' + endN + ' / 3' : '';
     refreshClueCount();
     refreshSoundIcon();
   }
