@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-1X9qWWkUSvphj2QiTwXVCl9dIgUGlhQNAXztGIa7QgY='; style-src 'sha256-P7LnjaYrfLKN3ccGlCf97RRe+xOm/4fsWUH6lsJebW8='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BUciUoCSfO797Po0saPYQ7sR4fMdqNhm16keOZe+HeI='; style-src 'sha256-P7LnjaYrfLKN3ccGlCf97RRe+xOm/4fsWUH6lsJebW8='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -2408,9 +2408,10 @@ FZ.ui = (function () {
     $('#fz-pause-btn').addEventListener('click', () => E().Engine.pause(!E().Engine.paused));
     $('#fz-settings').addEventListener('click', () => openSettings());
     $('#fz-clue-btn').addEventListener('click', () => openClues());
-    $('#fz-settings-close').addEventListener('click', closeOverlays);
+    let overlayFromTitle = false;
+    $('#fz-settings-close').addEventListener('click', () => { closeOverlays(); if (overlayFromTitle) { overlayFromTitle = false; showTitle(); } });
     $('#fz-clues-close').addEventListener('click', closeOverlays);
-    $('#fz-chapters-close').addEventListener('click', closeOverlays);
+    $('#fz-chapters-close').addEventListener('click', () => { closeOverlays(); showTitle(); });
     $('#fz-end-retry').addEventListener('click', () => { closeOverlays(); E().Engine.goto('ch5_s6'); });
     $('#fz-end-home').addEventListener('click', () => { closeOverlays(); showTitle(); });
     $('#fz-begin').addEventListener('click', () => { FZ.audio.start(); closeOverlays(); E().Engine.goto('ch1_s1'); });
@@ -2420,8 +2421,8 @@ FZ.ui = (function () {
       const target = FZ.story.sceneAt(d.ch, d.sceneIdx) || 'ch1_s1';
       E().Engine.goto(target);
     });
-    $('#fz-title-chapters').addEventListener('click', () => openChapters());
-    $('#fz-title-settings').addEventListener('click', () => openSettings());
+    $('#fz-title-chapters').addEventListener('click', () => { U.$('#fz-title-screen').classList.add('hidden'); openChapters(); });
+    $('#fz-title-settings').addEventListener('click', () => { overlayFromTitle = true; U.$('#fz-title-screen').classList.add('hidden'); openSettings(); });
     $('#set-wipe').addEventListener('click', () => {
       E().Save.wipe();
       E().Settings.init(E().Save.data.settings);
