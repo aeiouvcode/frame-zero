@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5RxL1spqQayVOqQ5QlsEAyBKrIc1zI5ReyNn9///3D4='; style-src 'sha256-W7+7F6lUnmv76YfKmgO9xRX1wA9SKhrp9+Ek0QZedhs='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qkcnZFPgIsmPkO6LqPkvvZNig1H4As16i0HBDoKN6t0='; style-src 'sha256-g5u7iJkSOYoHXrepPq9jWEccmMwZRDOUHT7cbLUCo+k='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -373,6 +373,17 @@ input.fz-range { width: 130px; accent-color: var(--red); }
 #fz-chapter-card .chn { font-family: var(--ui-font); letter-spacing: 8px; font-size: 15px; color: var(--red); margin-bottom: 16px; }
 #fz-chapter-card .cht { font-family: var(--serif-font); font-size: clamp(26px, 7vw, 46px); letter-spacing: 6px; text-align: center; padding: 0 20px; }
 #fz-chapter-card .rule { width: 120px; height: 2px; background: var(--red); margin-top: 26px; }
+
+/* ---------- ENDING SCREEN ---------- */
+#fz-ending-overlay .end-chn { letter-spacing: 8px; font-size: 14px; color: var(--red); margin-bottom: 14px; }
+#fz-ending-overlay h2.end-title { font-family: var(--serif-font); font-size: clamp(30px, 8vw, 52px); letter-spacing: 6px; text-align: center; margin: 0 0 18px; font-weight: 400; }
+#fz-ending-overlay .end-rule { width: 120px; height: 2px; background: var(--red); margin-bottom: 22px; }
+#fz-ending-overlay .end-epilogue { max-width: 520px; text-align: center; line-height: 1.8; opacity: .85; margin: 0 0 26px; font-size: 15px; }
+#fz-ending-overlay .end-stats { letter-spacing: 4px; font-size: 13px; color: var(--red); margin-bottom: 16px; }
+#fz-ending-overlay .end-clues { max-width: 560px; margin-bottom: 30px; font-size: 12.5px; line-height: 2.1; text-align: center; opacity: .8; }
+#fz-ending-overlay .end-clues .locked { opacity: .35; }
+#fz-ending-overlay .end-btns { display: flex; flex-direction: column; gap: 12px; width: min(320px, 80vw); }
+#fz-ending-overlay .end-btns .fz-btn { font-size: 15px; padding: 13px; }
 
 /* ---------- CHOICE (endings) ---------- */
 #fz-choice {
@@ -2330,6 +2341,18 @@ FZ.ui = (function () {
         <div style="height:26px"></div>
         <button class="fz-btn" id="fz-settings-close">CLOSE</button>
       </div>
+      <div class="fz-overlay hidden" id="fz-ending-overlay" role="dialog" aria-label="Ending">
+        <div class="end-chn" id="fz-end-chn">ENDING</div>
+        <h2 class="end-title" id="fz-end-title"></h2>
+        <div class="end-rule"></div>
+        <p class="end-epilogue" id="fz-end-epilogue"></p>
+        <div class="end-stats" id="fz-end-stats"></div>
+        <div class="end-clues" id="fz-end-clues"></div>
+        <div class="end-btns">
+          <button class="fz-btn" id="fz-end-retry">TRY ANOTHER ENDING</button>
+          <button class="fz-btn" id="fz-end-home">RETURN TO TITLE</button>
+        </div>
+      </div>
       <div class="fz-overlay hidden" id="fz-clues-overlay" role="dialog" aria-label="Discovered clues">
         <h2>DISCOVERED CLUES</h2>
         <div class="panel-box" id="fz-clues-list"></div>
@@ -2361,6 +2384,8 @@ FZ.ui = (function () {
     $('#fz-settings-close').addEventListener('click', closeOverlays);
     $('#fz-clues-close').addEventListener('click', closeOverlays);
     $('#fz-chapters-close').addEventListener('click', closeOverlays);
+    $('#fz-end-retry').addEventListener('click', () => { closeOverlays(); E().Engine.goto('ch5_s6'); });
+    $('#fz-end-home').addEventListener('click', () => { closeOverlays(); showTitle(); });
     $('#fz-begin').addEventListener('click', () => { FZ.audio.start(); closeOverlays(); E().Engine.goto('ch1_s1'); });
     $('#fz-continue').addEventListener('click', () => {
       FZ.audio.start(); closeOverlays();
@@ -2543,10 +2568,30 @@ FZ.ui = (function () {
   }
 
   /* ---------- end card ---------- */
+  const ENDING_TEXT = {
+    publish: { name: 'PUBLISHED', ep: 'The ink dried. The city woke up real, and it had always been real. It does not remember being drawn.' },
+    erase: { name: 'ERASED', ep: 'The book forgave them by forgetting them. Nothing was ever written. Nothing was ever lost.' },
+    unfinished: { name: 'LEFT UNFINISHED', ep: 'A panel left open keeps breathing. The story waits, exactly where you left it.' }
+  };
   function showEndCard() {
     const d = FZ.engine.Save.data;
-    const endName = d.ending === 'publish' ? 'PUBLISHED' : d.ending === 'erase' ? 'ERASED' : d.ending === 'unfinished' ? 'LEFT UNFINISHED' : null;
-    chapterCard(endName ? 'ENDING \u2014 ' + endName : 'FRAME ZERO', endName ? 'The page turns without you.' : '', 3000).then(showTitle);
+    const e = ENDING_TEXT[d.ending];
+    const seen = d.endings || (d.endings = {});
+    if (d.ending && !seen[d.ending]) { seen[d.ending] = Date.now(); FZ.engine.Save.save(); }
+    U.$('#fz-end-chn').textContent = e ? 'ENDING \u2014 ' + Object.keys(seen).length + ' OF 3 SEEN' : 'FRAME ZERO';
+    U.$('#fz-end-title').textContent = e ? e.name : 'FRAME ZERO';
+    U.$('#fz-end-epilogue').textContent = e ? e.ep : '';
+    U.$('#fz-end-stats').textContent = 'SECRETS FOUND: ' + FZ.engine.Save.clueCount() + ' / ' + Object.keys(CLUE_BOOK).length;
+    const cl = U.$('#fz-end-clues');
+    const names = [];
+    for (const id in CLUE_BOOK) {
+      const got = FZ.engine.Save.hasClue(id);
+      names.push('<span class="' + (got ? '' : 'locked') + '">' + (got ? CLUE_BOOK[id].name : '???') + '</span>');
+    }
+    cl.innerHTML = names.join(' \u00B7 ');
+    closeOverlays();
+    U.$('#fz-ending-overlay').classList.remove('hidden');
+    FZ.audio.sfx.pageTurn();
   }
 
   /* ---------- UI infection (ch4/5) ---------- */
