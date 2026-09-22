@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-s7E+r3K4qn05jTcdCW/qx8PyDcOkq0YlTbHR65XUU6k='; style-src 'sha256-OrZhpzbxbiFj8s6dJcpUke14nuEk1YOklmca/Lhl8Nc='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-s7E+r3K4qn05jTcdCW/qx8PyDcOkq0YlTbHR65XUU6k='; style-src 'sha256-3h7lRkqbuuPto6TfZF/f+BALLIXD3GsYraQD1ngnK2E='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -348,6 +348,8 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 .set-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid rgba(233,228,214,.12); font-size: 14px; letter-spacing: 1px; }
 .set-row label { flex: 1; }
 .set-row .seg { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+#set-perf.seg { display: grid; grid-template-columns: repeat(2, 1fr); width: min(248px, 62vw); }
+#set-perf.seg .fz-btn { text-align: center; }
 .seg .fz-btn { min-width: 0; min-height: 36px; padding: 7px 12px; font-size: 12px; }
 .seg .fz-btn.sel { background: var(--ui-fg); color: #14110d; }
 input.fz-range { width: 130px; accent-color: var(--red); }
