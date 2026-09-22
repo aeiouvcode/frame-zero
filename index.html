@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5lDWbGBuQYsFHir/wxbNGMNNPFe0E1vgnHzcPA+QDI8='; style-src 'sha256-3h7lRkqbuuPto6TfZF/f+BALLIXD3GsYraQD1ngnK2E='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5lDWbGBuQYsFHir/wxbNGMNNPFe0E1vgnHzcPA+QDI8='; style-src 'sha256-dx4CE+7YkVi4jCrDk0Dmcu9RqgItRl72QJqcCsgI4Fc='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -417,10 +417,10 @@ body.motion-reduced #fz-title-art .mote, body.motion-reduced #fz-title-word { an
   position: fixed; inset: 0; z-index: 75;
   display: none; flex-direction: column; align-items: center; justify-content: flex-end;
   padding: 0 20px calc(60px + env(safe-area-inset-bottom));
-  background: linear-gradient(transparent 30%, rgba(5,4,3,.92));
+  background: linear-gradient(rgba(5,4,3,0) 18%, rgba(5,4,3,.93) 52%, rgba(5,4,3,.97) 78%);
 }
 #fz-choice.on { display: flex; }
-#fz-choice .choice-prompt { color: var(--ui-fg); font-family: var(--ui-font); letter-spacing: 4px; font-size: 15px; margin-bottom: 22px; text-align:center; }
+#fz-choice .choice-prompt { color: var(--ui-fg); font-family: var(--ui-font); letter-spacing: 4px; font-size: 15px; margin-bottom: 22px; text-align:center; text-shadow: 0 2px 14px rgba(5,4,3,.95), 0 0 4px rgba(5,4,3,.9); }
 #fz-choice .choice-list { display: flex; flex-direction: column; gap: 14px; width: min(440px, 92vw); }
 .choice-opt {
   background: var(--ui-bg); border: 1px solid rgba(233,228,214,.3);
@@ -449,7 +449,10 @@ body.motion-reduced .choice-opt, body.motion-reduced .chapter-item, body.motion-
   content: '— already drawn'; position: absolute; right: 12px; top: 10px;
   font-size: 10px; color: var(--red); letter-spacing: 1px; opacity: 0;
   transition: opacity 800ms ease;
+  animation: fz-predrawn-in 900ms ease 1.15s both;
 }
+@keyframes fz-predrawn-in { to { opacity: .9; } }
+body.motion-reduced .choice-opt.predrawn::after { animation: none; opacity: .9; }
 .choice-opt.predrawn:hover::after { opacity: .9; }
 
 /* ---------- PAUSE ---------- */
