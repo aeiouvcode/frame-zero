@@ -1,33 +1,35 @@
 # HANDOFF - FRAME ZERO
 
-Updated: 2026-09-23 08:40 IST
-
 ## What this is
-Five-chapter interactive animated manga. Single self-contained index.html (vanilla HTML/CSS/JS + inline SVG + Canvas + Web Audio; no frameworks/CDN/external assets). Procedural manga art, grayscale + restrained crimson, mobile-portrait-first, LocalStorage saves, ?debug=1. 46 scenes across 5 chapters, 3 endings, 15 clues.
+Five-chapter interactive animated manga. Single self-contained index.html:
+vanilla HTML/CSS/JS + inline SVG + Canvas + Web Audio. No frameworks, CDN, or
+external assets. Grayscale + restrained crimson. Mobile-portrait-first.
+LocalStorage saves. ?debug=1 for QA hooks (FZ.engine.Engine.goto/skipAll).
 
-## Surfaces
-1. GitHub Pages (canonical): https://aeiouvcode.github.io/frame-zero/ - repo aeiouvcode/frame-zero, main branch, index.html at root
-2. Instinct File (PRIVATE, primary since Sep 21): https://files.instinct.com/file-01M326A1R2C7SMTDWWGT4R4V3B - ported via scripts/port_to_file.py (index.html -> src/fz.css + fz-runtime.js + App.tsx); localStorage blocked in the hosted iframe
+## Deploy (GitHub Pages, repo aeiouvcode/frame-zero, branch main)
+1. Edit index.html. Extract the single inline <script> and `node --check` it.
+2. `python3 rehash.py index.html` (rewrites CSP sha256 for inline script+style).
+3. Tree bridge: load bridge-tree.html in cloud browser tab, fill vault login
+   (kind=login, key=password, field n1 = GitHub push token 'GitHub push token -
+   aeiouvcode'), stage payload as <=46K JSON-string chunks via execute-js,
+   JSON.parse in page; Git Data API: GET ref -> GET commit -> POST blobs ->
+   POST tree -> POST commit -> PATCH ref. One commit, PARAMETERIZED message.
+4. Verify: `curl -s https://aeiouvcode.github.io/frame-zero/ | md5sum` matches local.
+5. QA in cloud browser with cache-buster (?v=N) - profile caches Pages aggressively.
+6. Update CURRENT_TASK.md / CHECKPOINT.md / HANDOFF.md in the same commit.
 
-## How a cycle runs
-1. curl the live index.html from raw.githubusercontent (workspace wipes; live file is the ONLY durable source - never deploy a stale local copy)
-2. Check api.github.com/repos/aeiouvcode/frame-zero/commits for foreign commits; rebase onto newest live
-3. Critique at 390px (phone first): spacing, type hierarchy, restraint, accent discipline, no boxes-in-boxes; pick highest-value fix; self-critique hard before shipping
-4. Security pass every cycle (5 checks, see CHECKPOINT.md); grade PASS/PARTIAL/FAIL honestly
-5. node --check extracted script; rehash CSP; deploy via PAT bridge; md5-verify live
-6. File: checkout source, port, build, preview-boot-verify, publish with current generation from `tools file read`
-7. Screenshot-verify at 390px with cache-buster ?v=N; report milestone with both URLs + in-motion frames + honest residuals
+## Instinct File republish
+`tools file checkout --file-id file-01M326A1R2C7SMTDWWGT4R4V3B --path /home/sandbox/fz-file`
+then `python3 scripts/port_to_file.py index.html /home/sandbox/fz-file` (2 args),
+build, preview boot-verify at 390px visually (app iframe is a dynamic ES module),
+publish with current generation from `tools file read`.
 
-## Failed approaches / do-not-repeat
-- DO NOT "fix" blank panels seen in cloud-browser screenshots without root-causing: the cloud browser throttles requestAnimationFrame to ~1Hz even visible+focused, so CSS entrance animations lag setInterval-driven beats. Artifact, not app bug. In QA: document.getAnimations().forEach(a=>a.finish()) before capturing entrance-dependent frames.
-- Old vault entry 'GitHub aeiouvcode repo push token' is DELETED (401); use 'GitHub push token - aeiouvcode'.
-- execute-js multi-statement scripts need explicit return; string concat on a 345K-char join returns null silently - verify staging by length.
-- github.io can stall mid-download to the cloud browser: navigate wait-until=none, poll htmlLen; re-navigate with fresh cache-buster on stall.
-- SkipAll does not skip tap gates (Engine.waitTap parks) - expected; parked scenes show TAP TO CONTINUE.
-- Suspected visual defects: root-cause in the DOM before patching (two prior "bugs" were intentional design or QA artifacts).
-- Bridge commit messages are hardcoded per build - parameterize per deploy (8b04a219 shipped with a stale recycled security message).
-- Flexbox justify-content:center + overflow-y:auto CLIPS overflowing content top (ending card lost its eyebrow at 650px height). Fixed with justify-content: safe center - use it on any centered scrollable overlay.
-- Chapter titles must never truncate mid-word on the top bar: fitChapterLabel() shrinks type to fit (min 9px) - keep it wired when touching setChapterLabel.
+## Security posture (check every cycle)
+0 fetch/XHR/WebSocket/sendBeacon; 0 external src/href; CSP sha256-only inline;
+sanitizeSvg on all innerHTML SVG sinks; no secrets in repo/history; no telemetry.
 
-## Authority
-Standing instruction from the user (Sep 20 WhatsApp, confirmed Sep 21 3:32 PM via main agent): continue improving and deploying autonomously; report finished milestones, not plans. Sep 21 user steer: "the only thing you miss out on is the design" - design is the primary grading axis.
+## Gotchas
+- whiteout = persistent on/off overlay; flash-white/flash-red = timed flash (ms).
+  A beat that wants a timed white flash must use flash-white (ch3_s9 bug 2026-09-24).
+- corrupt v>=0.8 -> infect(2) (possessed chrome). Authored, not a bug.
+- Other agents commit to this repo; check commit log, never revert others' work.

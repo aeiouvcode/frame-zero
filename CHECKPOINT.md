@@ -1,32 +1,30 @@
 # CHECKPOINT - FRAME ZERO
 
-Updated: 2026-09-23 22:52 IST
+Last updated: 2026-09-24 04:33 IST
 
 ## Live state
-- GitHub Pages: https://aeiouvcode.github.io/frame-zero/
-  - live md5: 536468e4d6b1e84fec8c219f8e294f3c (short-viewport overlay fix, this cycle's commit)
-  - history: 95c419c4 chapter-label fit, e9685e9a state files, 8b04a219 choice UX, b45cb3ba sanitizeSvg
-- Instinct File (PRIVATE): https://files.instinct.com/file-01M326A1R2C7SMTDWWGT4R4V3B
-  - generation 7 at last republish; this cycle's republish bumps it
-  - known caveat: hosted iframe blocks localStorage - saves do not persist in the File version
+- GitHub Pages: https://aeiouvcode.github.io/frame-zero/ (main, index.html at root)
+- Live md5 after this deploy: see latest commit message (verify with curl -s ... | md5sum)
+- Instinct File: PRIVATE, https://files.instinct.com/file-01M326A1R2C7SMTDWWGT4R4V3B
+  (republished this cycle; generation from `tools file read`)
 
-## Verification status
-- Sep 23 22:52 cycle: ch3_s8 + ch5_coda reel PASS; boot 1192ms domComplete; no app change shipped (honest no-ship)
-## Verification status
-- Short-viewport fix verified live via CSSOM injection at 390x650: canReachTop false -> true, safe center supported
-- Full reels across cycles: all major surfaces PASS at 390px (see CURRENT_TASK.md verified list)
-- Prior: 46-scene sweep 0 errors; sanitizer self-test PASS
+## Completed milestones
+- Full five-chapter playable manga with saves, choices, clues, endings.
+- Infection/possession UI arc (ch3_s9 corrupt 0.8 -> infect(2) is AUTHORED).
+- Art-echo tie-in (manuscript circled option), chapter-label fit, short-viewport
+  safe-center, choice-UX contrast, sanitizeSvg innerHTML hardening, state files.
+- 2026-09-24: ch3_s9 whiteout-stuck bug fixed (whiteout->flash-white, line 3761).
 
-## Security posture (last pass Sep 23 16:26)
-- No secrets in repo/history: PASS
-- No unexpected outbound calls (0 fetch/XHR/WebSocket/sendBeacon; connect-src 'none'): PASS
-- Dependency-free, no third-party scripts: PASS
-- Injection sinks: PASS (16 innerHTML sites audited Sep 23 10:26; CSS-only changes since)
-- Phoning home: PASS
+## Failed approaches / artifacts (do not repeat)
+- Cloud browser throttles rAF to ~1Hz: CSS entrance anims lag beats. Force
+  document.getAnimations().forEach(a=>a.finish()) before QA screenshots. Two past
+  "bugs" were this artifact; root-cause in DOM before patching.
+- Scene-hopping in QA leaks global FX/chrome state between scenes (infected chrome,
+  white overlays). Always clean-reload before judging a frame.
+- execute-js big string returns come back null; use lengths/counts, chunk payloads
+  <=46K for the tree bridge.
+- Workspace is wiped between runs: re-download live index.html; rebuild
+  rehash.py / bridge-tree.html from HANDOFF.md recipes.
 
-## Deploy machinery (rebuilt if workspace wiped)
-- Deploy: PAT bridge page (data-URL) -> Contents API; vault entry 'GitHub push token - aeiouvcode'
-- Multi-file single commit: Git Data API tree bridge (GET ref -> GET commit -> POST blobs -> POST tree -> POST commit -> PATCH ref); stage large payloads as 46K JSON-string chunks, JSON.parse in page
-- Rehash: base64 sha256 of the single inline script + style blocks into CSP meta
-- File port: scripts/port_to_file.py lives in the File source (checkout file-01M326A1R2C7SMTDWWGT4R4V3B)
-- Repo is shared ground: check commit log first; never revert others; PARAMETERIZE commit messages per deploy
+## Next actions
+See CURRENT_TASK.md candidate list.
