@@ -1,6 +1,6 @@
 # CHECKPOINT - FRAME ZERO
 
-Updated: 2026-09-23 16:30 IST
+Updated: 2026-09-23 22:52 IST
 
 ## Live state
 - GitHub Pages: https://aeiouvcode.github.io/frame-zero/
@@ -10,6 +10,8 @@ Updated: 2026-09-23 16:30 IST
   - generation 7 at last republish; this cycle's republish bumps it
   - known caveat: hosted iframe blocks localStorage - saves do not persist in the File version
 
+## Verification status
+- Sep 23 22:52 cycle: ch3_s8 + ch5_coda reel PASS; boot 1192ms domComplete; no app change shipped (honest no-ship)
 ## Verification status
 - Short-viewport fix verified live via CSSOM injection at 390x650: canReachTop false -> true, safe center supported
 - Full reels across cycles: all major surfaces PASS at 390px (see CURRENT_TASK.md verified list)
