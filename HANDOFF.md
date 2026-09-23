@@ -26,6 +26,7 @@ Five-chapter interactive animated manga. Single self-contained index.html (vanil
 - SkipAll does not skip tap gates (Engine.waitTap parks) - expected; parked scenes show TAP TO CONTINUE.
 - Suspected visual defects: root-cause in the DOM before patching (two prior "bugs" were intentional design or QA artifacts).
 - Bridge commit messages are hardcoded per build - parameterize per deploy (8b04a219 shipped with a stale recycled security message).
+- Flexbox justify-content:center + overflow-y:auto CLIPS overflowing content top (ending card lost its eyebrow at 650px height). Fixed with justify-content: safe center - use it on any centered scrollable overlay.
 - Chapter titles must never truncate mid-word on the top bar: fitChapterLabel() shrinks type to fit (min 9px) - keep it wired when touching setChapterLabel.
 
 ## Authority

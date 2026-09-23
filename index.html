@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-58ZHstyTO18tRMVOgsKGBlM7sfAISoRpYsrlOV+/ZUs='; style-src 'sha256-dx4CE+7YkVi4jCrDk0Dmcu9RqgItRl72QJqcCsgI4Fc='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-58ZHstyTO18tRMVOgsKGBlM7sfAISoRpYsrlOV+/ZUs='; style-src 'sha256-UtrmoG0D6RvUAP6KlBcLQKrLiO/u6IM6hr/JZQMms2o='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -320,6 +320,7 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
   position: fixed; inset: 0; z-index: 80;
   background: #080705;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
+  justify-content: safe center; /* short phones: overflow must stay reachable from the top */
   color: var(--ui-fg); font-family: var(--ui-font);
   padding: 24px;
   overflow-y: auto;
@@ -408,6 +409,7 @@ body.motion-reduced #fz-title-art .mote, body.motion-reduced #fz-title-word { an
 #fz-ending-overlay .end-clues { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: min(440px, 92vw); margin-bottom: 30px; font-size: 11px; line-height: 1.45; text-align: center; opacity: .8; }
 #fz-ending-overlay .end-clues span { padding: 6px 8px; border: 1px solid rgba(233,228,214,.14); border-radius: 3px; letter-spacing: 1px; }
 #fz-ending-overlay .end-clues .locked { opacity: .3; border-style: dashed; }
+@media (max-width: 359px) { #fz-ending-overlay .end-clues { grid-template-columns: 1fr; } }
 #fz-ending-overlay .end-epilogue, #fz-ending-overlay .end-clues { text-wrap: balance; }
 #fz-ending-overlay .end-btns { display: flex; flex-direction: column; gap: 12px; width: min(320px, 80vw); }
 #fz-ending-overlay .end-btns .fz-btn { font-size: 15px; padding: 13px; }
