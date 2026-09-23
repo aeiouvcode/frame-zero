@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5lDWbGBuQYsFHir/wxbNGMNNPFe0E1vgnHzcPA+QDI8='; style-src 'sha256-dx4CE+7YkVi4jCrDk0Dmcu9RqgItRl72QJqcCsgI4Fc='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-58ZHstyTO18tRMVOgsKGBlM7sfAISoRpYsrlOV+/ZUs='; style-src 'sha256-dx4CE+7YkVi4jCrDk0Dmcu9RqgItRl72QJqcCsgI4Fc='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -2531,8 +2531,23 @@ FZ.ui = (function () {
 
   /* ---------- chrome state ---------- */
   function setChapterLabel(ch, title) {
-    U.$('#fz-chapter-label').textContent = 'CH ' + ch + ' \u2014 ' + (title || CHAPTER_TITLES[ch] || '');
+    const cl = U.$('#fz-chapter-label');
+    cl.dataset.full = 'CH ' + ch + ' \u2014 ' + (title || CHAPTER_TITLES[ch] || '');
+    fitChapterLabel(cl);
   }
+  // Phone-first: never truncate a chapter title mid-word - shrink the type until it fits.
+  function fitChapterLabel(cl) {
+    cl = cl || U.$('#fz-chapter-label');
+    if (!cl || !cl.dataset.full) return;
+    cl.style.fontSize = '';
+    cl.textContent = cl.dataset.full;
+    let fs = parseFloat(getComputedStyle(cl).fontSize) || 14;
+    while (cl.scrollWidth > cl.clientWidth && fs > 9) {
+      fs -= 0.5;
+      cl.style.fontSize = fs + 'px';
+    }
+  }
+  window.addEventListener('resize', () => fitChapterLabel());
   function setProgress(f) {
     U.$('#fz-progress-fill').style.width = Math.round(f * 100) + '%';
   }

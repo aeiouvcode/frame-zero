@@ -25,6 +25,8 @@ Five-chapter interactive animated manga. Single self-contained index.html (vanil
 - github.io can stall mid-download to the cloud browser: navigate wait-until=none, poll htmlLen; re-navigate with fresh cache-buster on stall.
 - SkipAll does not skip tap gates (Engine.waitTap parks) - expected; parked scenes show TAP TO CONTINUE.
 - Suspected visual defects: root-cause in the DOM before patching (two prior "bugs" were intentional design or QA artifacts).
+- Bridge commit messages are hardcoded per build - parameterize per deploy (8b04a219 shipped with a stale recycled security message).
+- Chapter titles must never truncate mid-word on the top bar: fitChapterLabel() shrinks type to fit (min 9px) - keep it wired when touching setChapterLabel.
 
 ## Authority
 Standing instruction from the user (Sep 20 WhatsApp, confirmed Sep 21 3:32 PM via main agent): continue improving and deploying autonomously; report finished milestones, not plans. Sep 21 user steer: "the only thing you miss out on is the design" - design is the primary grading axis.
