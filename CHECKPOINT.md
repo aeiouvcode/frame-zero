@@ -1,6 +1,6 @@
 # CHECKPOINT - FRAME ZERO
 
-Last updated: 2026-09-24 10:33 IST
+Last updated: 2026-09-24 16:33 IST
 
 ## Live state
 - GitHub Pages: https://aeiouvcode.github.io/frame-zero/ (main, index.html at root)
@@ -16,6 +16,8 @@ Last updated: 2026-09-24 10:33 IST
 - 2026-09-24: ch3_s9 whiteout-stuck bug fixed (whiteout->flash-white, line 3761).
 - 2026-09-24: full 35-scene reel completed; ch2_s10 caption collision + ch5_s4 camera
   miss fixed (clearDlg beat, mirror-panel cam beat).
+- 2026-09-24: readability pacing fix - Engine.wait dwell floor (chars*46ms, cap 4.5s)
+  when dialogue visible; 31/121 lines were unreadably fast. Verified by stopwatch.
 
 ## Failed approaches / artifacts (do not repeat)
 - Cloud browser throttles rAF to ~1Hz: CSS entrance anims lag beats. Force

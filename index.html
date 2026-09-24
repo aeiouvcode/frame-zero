@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ObF02nk/IhO2YGUMQOL/UJ3SLZsUmMuVc8lHP//Utrg='; style-src 'sha256-UtrmoG0D6RvUAP6KlBcLQKrLiO/u6IM6hr/JZQMms2o='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0esevBf3QmTnuFLGPLQ1zj1pQSesZYhQDmTXqymEk70='; style-src 'sha256-UtrmoG0D6RvUAP6KlBcLQKrLiO/u6IM6hr/JZQMms2o='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -2126,10 +2126,21 @@ FZ.engine = (function () {
 
     wait(ms) {
       const real = Settings.values.motion === 'reduced' ? Math.min(ms, 120) : ms;
+      let dwell = real;
+      if (Settings.values.motion !== 'reduced') {
+        // readability floor: never clear visible dialogue faster than it can be read
+        // (typewriter already consumed chars * typeCps ms before this wait began)
+        const last = Dialogue.current[Dialogue.current.length - 1];
+        if (last) {
+          const chars = (last.textContent || '').length;
+          const k = Settings.values.textSpeed === 'slow' ? 30 : Settings.values.textSpeed === 'fast' ? 40 : 46;
+          dwell = Math.max(real, Math.min(chars * k, 4500));
+        }
+      }
       return new Promise(res => {
         const t0 = performance.now();
         const iv = setInterval(() => {
-          if (this.skipAll || performance.now() - t0 >= real) { clearInterval(iv); res(); }
+          if (this.skipAll || performance.now() - t0 >= dwell) { clearInterval(iv); res(); }
         }, 40);
       });
     },
