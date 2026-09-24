@@ -1,30 +1,37 @@
 # CURRENT TASK - FRAME ZERO
 
-Updated: 2026-09-24 04:33 IST (cycle: ch3_s9 whiteout bug fix, shipped)
+Updated: 2026-09-24 10:33 IST (cycle: full-reel completion + two beat-level fixes, shipped)
 
 ## This cycle (shipped)
-- Reel found REAL bug: ch3_s9 (Erased City finale) - page painted pure white from the
-  "REALITY RESET" slam until chapter end. Root cause: beat used
-  `{ t:'fx', name:'whiteout', ms:900 }`; the engine maps whiteout to a PERSISTENT
-  overlay (FX.whiteout(on!==false)) and silently ignores ms. The white layer never
-  cleared, hiding the morning/nail panels for every player.
-- Fix: beat changed to `flash-white` (FX.flash auto-clears after ms). One-word patch,
-  line 3761. node --check PASS, CSP rehashed.
-- Verified fixed at 390px on live: morning + fingernail panels now visible under a
-  900ms white flash. Infected+possessed chrome at ch3_s9 confirmed AUTHORED
-  (corrupt v:0.8 -> infect(2)), not a bug.
-- Security 5-check: PASS (0 fetch/XHR/WebSocket/sendBeacon, 0 external src/href,
-  CSP rehashed, no secrets, no new sinks).
+- Reeled the remaining unverified scenes at 390px: ch2_s5-s10, ch5_s1/s2/s4/s5. All PASS
+  except two beat-level defects, both fixed and shipped in one commit:
+  1. ch2_s10: "END OF CHAPTER 02" narr bar landed on top of Ren's whisper bubble in the
+     final tap state (no clearDlg between say and blackout). Added clearDlg before blackout.
+  2. ch5_s4: the mirror-panel exchange ("That's my face" / "I was you") played while the
+     camera stayed locked on the face zoom (last cam beat never re-targeted), cramming both
+     bubbles at the viewport bottom over TAP TO CONTINUE. Added a cam beat to the mirror
+     panel center (500,1250,z1.2) before the exchange.
+- fx-beat semantics audit (sibling-misuse sweep from last cycle): PASS - all 14 fx beats
+  match dispatcher semantics (whiteout=persistent on/off, flash-*=timed, blackout on/off pairs).
+- Security 5-check: PASS (0 fetch/XHR/WebSocket/sendBeacon, 0 external src/href, CSP
+  rehashed, no secrets, no injection sinks).
+- Confirmed authored (not bugs): infect(1) chrome from ch2_s10 corrupt 0.55 onward;
+  empty contacts slot in ch2_s7; occluded caption in ch5_s2 (figure-in-front layering).
+
+## Reel status
+- ALL 35 scenes + 3 endings + coda now reeled at 390px at least once. PASS everywhere
+  post-fix. The full story is verified end-to-end.
 
 ## Candidate next actions (priority order)
-1. Remaining unreeled scenes in motion: ch2_s5+ (Ren crossing the gutter), ch5_s1-s2/s4-s5.
-2. Sweep for sibling misuse: audit every fx beat name vs dispatcher semantics
-   (whiteout=on/off persistent, flash-white/flash-red=timed) - one-off grep audit.
-3. Deep-craft pass: panel entrance timing choreography, camera ease audit, audio mix.
+1. Deep-craft pass: panel entrance timing choreography, camera ease audit per scene,
+   procedural audio mix levels (Web Audio balance).
+2. Structural candidates (weigh carefully): PWA manifest for add-to-homescreen
+   (small JSON + meta, still self-contained). Split-bundle cold-load: likely reject
+   (violates single-file constraint).
+3. Playthrough-timing audit: real-time (non-skipAll) pacing of waits per scene.
 
 ## Verified-good surfaces (do not rework)
-- Title, ch1_s1 open, ch2 CCTV, ch3 street/sisters/margin-note/reset, ch4 seven-Mikas,
-  ch5 choice + infected UI + coda end card, pause veil, settings, chapters, clues,
+- Title, all ch1-ch5 scenes, endings, coda, pause veil, settings, chapters, clues,
   clue toast, captions, short-viewport overlays, chapter-label fit.
 
 ## Standing constraints

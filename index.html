@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-U2CJr21x6A4FqdiMKvbo5wY05/FiFly4ofzyN/ZVdlM='; style-src 'sha256-UtrmoG0D6RvUAP6KlBcLQKrLiO/u6IM6hr/JZQMms2o='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ObF02nk/IhO2YGUMQOL/UJ3SLZsUmMuVc8lHP//Utrg='; style-src 'sha256-UtrmoG0D6RvUAP6KlBcLQKrLiO/u6IM6hr/JZQMms2o='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -3453,7 +3453,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'say', who: 'REN', text: 'You did. That\u2019s the problem.', x: 580, y: 760, w: 400, tail: 'left', style: 'whisper' },
     { t: 'sfx', name: 'heartbeat' },
     { t: 'wait', ms: 1400 },
-    { t: 'fx', name: 'blackout', on: true, slow: true }, c => FZ.audio.stopHeartbeat(),
+    { t: 'clearDlg' }, { t: 'fx', name: 'blackout', on: true, slow: true }, c => FZ.audio.stopHeartbeat(),
     { t: 'narr', text: 'END OF CHAPTER 02', x: 500, y: 750, w: 500 },
     { t: 'wait', ms: 1600 },
     c => { FZ.engine.Save.data.unlockedCh = Math.max(FZ.engine.Save.data.unlockedCh, 3); FZ.engine.Save.save(); },
@@ -4152,6 +4152,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'say', who: 'THE EDITOR', text: 'You made it to the white. You always do, eventually.', x: 448, y: 820, w: 520, tail: 'up', style: 'red' },
     { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
     { t: 'show', panel: 'mirror', anim: 'up', dur: 700 },
+    { t: 'cam', x: 500, y: 1250, z: 1.2, dur: 800, ease: 'inOut' },
     { t: 'say', who: 'MIKA', text: 'That face. That\u2019s - that\u2019s mine.', x: 260, y: 1150, w: 380, tail: 'right', style: 'shout' },
     { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
     { t: 'say', who: 'THE EDITOR', text: 'I was you. Or I wear you. The page stopped distinguishing a long time ago.', x: 636, y: 1150, w: 460, tail: 'left', style: 'whisper red' },

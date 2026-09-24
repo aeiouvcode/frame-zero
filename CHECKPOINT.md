@@ -1,6 +1,6 @@
 # CHECKPOINT - FRAME ZERO
 
-Last updated: 2026-09-24 04:33 IST
+Last updated: 2026-09-24 10:33 IST
 
 ## Live state
 - GitHub Pages: https://aeiouvcode.github.io/frame-zero/ (main, index.html at root)
@@ -14,6 +14,8 @@ Last updated: 2026-09-24 04:33 IST
 - Art-echo tie-in (manuscript circled option), chapter-label fit, short-viewport
   safe-center, choice-UX contrast, sanitizeSvg innerHTML hardening, state files.
 - 2026-09-24: ch3_s9 whiteout-stuck bug fixed (whiteout->flash-white, line 3761).
+- 2026-09-24: full 35-scene reel completed; ch2_s10 caption collision + ch5_s4 camera
+  miss fixed (clearDlg beat, mirror-panel cam beat).
 
 ## Failed approaches / artifacts (do not repeat)
 - Cloud browser throttles rAF to ~1Hz: CSS entrance anims lag beats. Force
