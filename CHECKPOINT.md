@@ -1,6 +1,6 @@
 # CHECKPOINT - FRAME ZERO
 
-Last updated: 2026-09-24 16:33 IST
+Last updated: 2026-09-24 22:36 IST
 
 ## Live state
 - GitHub Pages: https://aeiouvcode.github.io/frame-zero/ (main, index.html at root)
@@ -18,6 +18,8 @@ Last updated: 2026-09-24 16:33 IST
   miss fixed (clearDlg beat, mirror-panel cam beat).
 - 2026-09-24: readability pacing fix - Engine.wait dwell floor (chars*46ms, cap 4.5s)
   when dialogue visible; 31/121 lines were unreadably fast. Verified by stopwatch.
+- 2026-09-24: camera-visibility audit (new static model) - ch3_s8/ch5_s6 invisible
+  dialogue + ch1_s11 cropped bubble fixed with pull-back cam beats.
 
 ## Failed approaches / artifacts (do not repeat)
 - Cloud browser throttles rAF to ~1Hz: CSS entrance anims lag beats. Force

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0esevBf3QmTnuFLGPLQ1zj1pQSesZYhQDmTXqymEk70='; style-src 'sha256-UtrmoG0D6RvUAP6KlBcLQKrLiO/u6IM6hr/JZQMms2o='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YwQpwjhyzN6kK0XjtYA/H0r5rVp5s5FSEiGGZeVjBXc='; style-src 'sha256-UtrmoG0D6RvUAP6KlBcLQKrLiO/u6IM6hr/JZQMms2o='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -3024,6 +3024,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     {t:'sfx',name:'inkScratch'},
     c=>{const p=c.panel('blank');let s=`<rect width="872" height="1260" fill="${PAPER}"/><rect x="55" y="55" width="762" height="1150" fill="#ddd6c4" stroke="${INK}" stroke-width="9"/>`;s+=B.shelves(80,220,210,700,FZ.util.rng(3));s+=A.character({who:'mika',expr:'tired',x:430,y:760,scale:1.75,item:true});s+=`<g class="fx-flicker" opacity=".88">${A.character({who:'silhouette',expr:'neutral',x:640,y:675,scale:2.1,item:false})}</g>`;s+=A.vignette(872,1260,1.4);c.setArt(p,A.svg(872,1260,s));},
     {t:'wait',ms:1200},{t:'cam',x:635,y:680,z:1.5,dur:1300,ease:'inOut'},{t:'sfx',name:'heartbeat'},
+    {t:'cam',x:520,y:820,z:1.25,dur:700,ease:'inOut'},
     {t:'say',who:'MIKA',text:'In the drawing... someone is behind me.',x:390,y:1080,w:500,tail:'right',style:'thought'},
     {t:'wait',ms:1700},{t:'clearDlg'},
     {t:'cam',x:500,y:750,z:1,dur:800},{t:'fx',name:'blackout',on:true},{t:'sfx',name:'impact'},c=>FZ.audio.stopHeartbeat(),
@@ -3744,6 +3745,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     },
     { t: 'show', panel: 'page', anim: 'iris', dur: 900 }, { t: 'sfx', name: 'pageTurn' }, { t: 'amb', name: 'drone', arg: -5 },
     { t: 'cam', x: 660, y: 420, z: 1.5, dur: 1300, ease: 'inOut' },
+    { t: 'cam', x: 500, y: 850, z: 1, dur: 900, ease: 'inOut' },
     { t: 'narr', text: 'IN THE MARGIN, IN RED, IN HER SISTER\u2019S HAND:', x: 500, y: 1470, w: 680 },
     { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
     c => { if (c.clue('yuna-letter')) c.ui.clueToast('yuna-letter'); },
@@ -4242,6 +4244,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'show', panel: 'predrawn', anim: 'iris', dur: 900 }, { t: 'sfx', name: 'pageTurn' }, { t: 'amb', name: 'voidSpace' },
     { t: 'cam', x: 620, y: 380, z: 1.35, dur: 1200, ease: 'inOut' },
     c => { if (c.clue('predrawn-choice')) c.ui.clueToast('predrawn-choice'); },
+    { t: 'cam', x: 500, y: 850, z: 1, dur: 900, ease: 'inOut' },
     { t: 'narr', text: 'THE PAGE KNOWS WHAT YOU WILL DO. IT DREW IT AN HOUR AGO.', x: 500, y: 1470, w: 700 },
     { t: 'wait', ms: 1700 }, { t: 'clearDlg' },
     { t: 'choice', prompt: 'FINISH THE PAGE', options: [

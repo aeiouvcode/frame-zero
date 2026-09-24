@@ -1,31 +1,37 @@
 # CURRENT TASK - FRAME ZERO
 
-Updated: 2026-09-24 16:33 IST (cycle: readability pacing fix, shipped)
+Updated: 2026-09-24 22:36 IST (cycle: camera-framing audit + 3 fixes, shipped)
 
 ## This cycle (shipped)
-- Real-time pacing audit (first ever - all prior reels used skipAll): instrumented the
-  beat data in node. 31 of 121 dialogue lines across 24 scenes cleared faster than a
-  reader can finish them (exposure = typewriter chars*20ms + authored wait vs reading
-  floor chars*66ms). Worst: ch5_s3's 105-char confession with a 1.8s window (~3s short).
-  Median shortfall ~1.3s.
-- Fix (one central change, no per-scene edits): Engine.wait() now extends its dwell when
-  dialogue is visible - max(authored wait, min(chars * K, 4500ms)), K = 46/30/40 for
-  normal/slow/fast textSpeed. Short punchy lines and structural pauses (no dialogue) are
-  untouched. Reduced-motion path unchanged.
-- Verified with real-playback stopwatch (skipAll OFF): ch5_s3 10.3s -> ~15.6s
-  (sim predicted 15.6), ch1_s10 (staccato scene) unchanged ~5.5s. Model validated
-  against the old build first (10.34s measured vs 10.1s simulated).
+- New static audit: camera visibility model (390x844, base scale 0.39, visible window
+  500/z x 1082/z page units) run over all 46 scenes, executing constructor beats with a
+  recording ctx. Found 3 scenes where dialogue played outside the camera's visible
+  window (invisible text - the reel's skipAll grading missed these because it grades
+  end-states, and ch5_s6's choice overlay hid the gap):
+  1. ch3_s8: margin-note zoom (660,420,z1.5) left the narr + both Mika lines below the
+     visible window. Fix: pull-back cam (500,850,z1) before the narr.
+  2. ch5_s6: thesis line "THE PAGE KNOWS WHAT YOU WILL DO" at y1470 invisible behind the
+     predrawn-hand zoom (620,380,z1.35). Fix: same pull-back before the narr.
+  3. ch1_s11: Mika's "someone is behind me" bubble half-cropped left during the
+     silhouette zoom (635,680,z1.5). Fix: ease to (520,820,z1.25) before the say.
+  All three confirmed broken visually first, then re-audited clean post-patch.
+- ch2_s4 "zero-gap chain" residual from last cycle re-analyzed: FALSE POSITIVE - the
+  narr gets ~3.1s of exposure via intermediate show/cam beats (analyzer only counted
+  wait beats). No fix needed; residual closed.
+- Accepted marginal (not fixed): ch1_s3 (5px clip, bubble readable), ch5_s4 (13px
+  sliver, from the intentional mirror framing).
+- Security 5-check: PASS.
 
 ## Candidate next actions (priority order)
-1. Camera ease audit per scene (inOut/out choices, zoom levels at 390px crop).
-2. Procedural audio mix pass (Web Audio levels, heartbeat/drone balance).
-3. say->say chains with zero wait between them (1 known: ch2_s4) - residual from this
-   cycle, low severity since the old bubble stays visible while the next types.
-4. PWA manifest for add-to-homescreen (small JSON + meta, still self-contained).
+1. Procedural audio mix pass (Web Audio levels, heartbeat/drone balance) - only
+   remaining unaudited craft axis.
+2. PWA manifest for add-to-homescreen (small JSON + meta, still self-contained).
+3. Camera ease audit (inOut/out choices) - the positions are now clean, easings unjudged.
 
 ## Verified-good surfaces (do not rework)
-- Title, all 35 scenes + endings + coda (static 390px reel), readability pacing,
-  pause veil, settings, chapters, clues, clue toast, captions, short-viewport overlays.
+- Title, all 35 scenes + endings + coda (static reel + camera visibility model +
+  real-playback pacing), pause veil, settings, chapters, clues, clue toast, captions,
+  short-viewport overlays.
 
 ## Standing constraints
 - Single self-contained index.html, vanilla only, no frameworks/CDN/external assets.
