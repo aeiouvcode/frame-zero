@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-656dybDNTVn2iB3mzR54dBK6jSMlXyWlEsVp9VklhNk='; style-src 'sha256-UtrmoG0D6RvUAP6KlBcLQKrLiO/u6IM6hr/JZQMms2o='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-o639sOSBBxH2+SkbPhHATIvzblAa7+ZLl61IWzmzubE='; style-src 'sha256-eShsDtQCG79yPKTMaew9ML+4ePQPRp0jmWZbB7CCXEs='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -526,7 +526,7 @@ body.choice-open #fz-dialogue { opacity: 0; pointer-events: none; }
 @keyframes fz-breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2.6px); } }
 .fz-breathe { animation: fz-breathe 3.9s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 /* paper grain over the page */
-#fz-grain { position: absolute; inset: 0; opacity: .16; pointer-events: none; mix-blend-mode: multiply; z-index: 5; }
+#fz-grain { position: absolute; inset: 0; opacity: .26; pointer-events: none; z-index: 5; /* no mix-blend-mode: multiply forced a full-screen blend recompute every particle frame; source-over + higher opacity keeps the look, kills the jank */ }
 /* page-turn sweep between scenes */
 #fz-pageturn { position: absolute; inset: -4% -8%; background: var(--paper); border-left: 10px solid var(--ink); box-shadow: -30px 0 60px rgba(0,0,0,.55); transform: translateX(112%) skewX(-5deg); pointer-events: none; z-index: 40; }
 #fz-pageturn.turn { animation: fz-pageturn 640ms cubic-bezier(.6,.05,.3,.95) both; }
@@ -676,13 +676,13 @@ FZ.util = (function () {
 /* ============================================================
    FRAME ZERO - 11-audio.js
    Procedural Web Audio: no external files.
-   Buses: amb / sfx / music -> master. Starts on first gesture.
+   Buses: amb / sfx -> master. Starts on first gesture.
    Reality corruption escalates distortion.
    ============================================================ */
 'use strict';
 FZ.audio = (function () {
   const U = FZ.util;
-  let ctx = null, master, ambBus, sfxBus, musBus;
+  let ctx = null, master, ambBus, sfxBus;
   let started = false, muted = false, volume = 0.8;
   let corruption = 0; // 0..1, raises detune/noise as reality destabilizes
   let currentAmb = null, currentAmbNodes = [];
@@ -701,7 +701,6 @@ FZ.audio = (function () {
     master.connect(comp); comp.connect(ctx.destination);
     ambBus = ctx.createGain(); ambBus.gain.value = 0.55; ambBus.connect(master);
     sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(master);
-    musBus = ctx.createGain(); musBus.gain.value = 0.5; musBus.connect(master);
     return true;
   }
 
@@ -726,16 +725,25 @@ FZ.audio = (function () {
     return buf;
   }
 
-  function loopNoise(buf, bus, filterType, freq, q, gain) {
+  /* Beds start at gain 0 and ramp in: an instant-on noise/osc step is an audible click. */
+  function fadeIn(param, target, ms) {
+    const t = ctx.currentTime;
+    param.cancelScheduledValues(t);
+    param.setValueAtTime(Math.max(param.value, 0.0001), t);
+    param.exponentialRampToValueAtTime(Math.max(target, 0.0002), t + (ms || 700) / 1000);
+  }
+
+  function loopNoise(buf, bus, filterType, freq, q, gain, fadeMs) {
     const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
     let node = src;
     if (filterType) {
       const f = ctx.createBiquadFilter(); f.type = filterType; f.frequency.value = freq; f.Q.value = q || 0.8;
       src.connect(f); node = f;
     }
-    const g = ctx.createGain(); g.gain.value = gain;
+    const g = ctx.createGain(); g.gain.value = 0;
     node.connect(g); g.connect(bus);
     src.start();
+    fadeIn(g.gain, gain, fadeMs);
     return { src, gain: g };
   }
 
@@ -767,8 +775,9 @@ FZ.audio = (function () {
       currentAmb = 'hum';
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 60;
       const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 220;
-      const g = ctx.createGain(); g.gain.value = 0.018;
+      const g = ctx.createGain(); g.gain.value = 0;
       o.connect(f); f.connect(g); g.connect(ambBus); o.start();
+      fadeIn(g.gain, 0.018);
       const n = loopNoise(noiseBuffer(2), ambBus, 'highpass', 4000, 0.5, 0.012);
       currentAmbNodes.push({ osc: o, gain: g }, n);
     },
@@ -779,8 +788,9 @@ FZ.audio = (function () {
       currentAmbNodes.push(n);
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 60;
       const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 200;
-      const g = ctx.createGain(); g.gain.value = 0.016;
+      const g = ctx.createGain(); g.gain.value = 0;
       o.connect(f); f.connect(g); g.connect(ambBus); o.start();
+      fadeIn(g.gain, 0.016);
       currentAmbNodes.push({ osc: o, gain: g });
     },
     drone(semi) {
@@ -790,11 +800,12 @@ FZ.audio = (function () {
       [0, 0.7, -0.5].forEach(det => {
         const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = base; o.detune.value = det * 12 + corruption * 40 * (Math.random() - 0.5);
         const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300 + corruption * 900;
-        const g = ctx.createGain(); g.gain.value = 0.03;
+        const g = ctx.createGain(); g.gain.value = 0;
         const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07 + Math.random() * 0.05;
         const lg = ctx.createGain(); lg.gain.value = 0.012;
         lfo.connect(lg); lg.connect(g.gain);
         o.connect(f); f.connect(g); g.connect(ambBus); o.start(); lfo.start();
+        fadeIn(g.gain, 0.03, 900);
         currentAmbNodes.push({ osc: o, gain: g }, { osc: lfo });
       });
     },
@@ -804,7 +815,8 @@ FZ.audio = (function () {
       const n = loopNoise(noiseBuffer(3, true), ambBus, 'bandpass', 400, 0.6, 0.14);
       currentAmbNodes.push(n);
       const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 38;
-      const g = ctx.createGain(); g.gain.value = 0.05; o.connect(g); g.connect(ambBus); o.start();
+      const g = ctx.createGain(); g.gain.value = 0; o.connect(g); g.connect(ambBus); o.start();
+      fadeIn(g.gain, 0.05);
       currentAmbNodes.push({ osc: o, gain: g });
     },
     voidSpace() {
@@ -813,11 +825,12 @@ FZ.audio = (function () {
       const n = loopNoise(noiseBuffer(4, true), ambBus, 'lowpass', 160, 0.4, 0.09);
       currentAmbNodes.push(n);
       const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 220; o.detune.value = corruption * 60;
-      const g = ctx.createGain(); g.gain.value = 0.006;
+      const g = ctx.createGain(); g.gain.value = 0;
       const trem = ctx.createOscillator(); trem.frequency.value = 0.16;
       const tg = ctx.createGain(); tg.gain.value = 0.005;
       trem.connect(tg); tg.connect(g.gain);
       o.connect(g); g.connect(ambBus); o.start(); trem.start();
+      fadeIn(g.gain, 0.006, 1200);
       currentAmbNodes.push({ osc: o, gain: g }, { osc: trem });
     }
   };
@@ -938,12 +951,13 @@ FZ.audio = (function () {
     start, amb, sfx,
     get started() { return started; },
     get state() { return ctx ? ctx.state : 'none'; },
-    setMuted(m) { muted = m; if (master) master.gain.linearRampToValueAtTime(m ? 0 : volume, ctx.currentTime + 0.1); },
+    setMuted(m) { muted = m; if (master) { const t = ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(m ? 0 : volume, t + 0.1); } },
     get muted() { return muted; },
-    setVolume(v) { volume = U.clamp(v, 0, 1); if (master && !muted) master.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.05); },
+    setVolume(v) { volume = U.clamp(v, 0, 1); if (master && !muted) { const t = ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(volume, t + 0.05); } },
     get volume() { return volume; },
     setCorruption(c) { corruption = U.clamp(c, 0, 1); },
-    stopHeartbeat() { sfx.heartbeat(false); }
+    stopHeartbeat() { sfx.heartbeat(false); },
+    get _ambLevel() { return currentAmbNodes.reduce((s, n) => s + (n.gain ? n.gain.gain.value : 0), 0); }
   };
 })();
 
