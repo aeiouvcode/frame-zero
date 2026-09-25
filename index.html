@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-o639sOSBBxH2+SkbPhHATIvzblAa7+ZLl61IWzmzubE='; style-src 'sha256-eShsDtQCG79yPKTMaew9ML+4ePQPRp0jmWZbB7CCXEs='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QRTHXj6s8NTjDr0dhIshvEwIUejnDWqWNvWdn8zk1Cg='; style-src 'sha256-arc9W06wpxlEYsc+fJLOQf2+CyytNO8bvKtkSpslqMo='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -351,7 +351,7 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 .set-row .seg { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 #set-perf.seg { display: grid; grid-template-columns: repeat(2, 1fr); width: min(248px, 62vw); }
 #set-perf.seg .fz-btn { text-align: center; }
-.seg .fz-btn { min-width: 0; min-height: 36px; padding: 7px 12px; font-size: 12px; }
+.seg .fz-btn { min-width: 0; min-height: 44px; padding: 7px 12px; font-size: 12px; } /* 44px touch-target floor */
 .seg .fz-btn.sel { background: var(--ui-fg); color: #14110d; }
 input.fz-range { width: 130px; accent-color: var(--red); }
 
@@ -536,7 +536,7 @@ body.motion-reduced #fz-pageturn.turn { animation: none !important; }
 .tier-low #fz-grain { display: none; }
 @media (max-width: 480px) {
   .ui-right { right: 8px; gap: 8px; }
-  .fz-icon-btn { width: 40px; height: 40px; }
+  .fz-icon-btn { width: 44px; height: 44px; } /* 44px touch-target floor */
 }
 
 #fz-chapter-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62vw; }
@@ -996,15 +996,6 @@ FZ.art = (function () {
         <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="n"/>
         <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"/>
       </filter>
-      <filter id="fz-rough-hard" x="-8%" y="-8%" width="116%" height="116%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="3" result="n"/>
-        <feDisplacementMap in="SourceGraphic" in2="n" scale="5"/>
-      </filter>
-      <filter id="fz-grain">
-        <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" result="n"/>
-        <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.35 0.35 0.35 0 0"/>
-        <feComposite operator="over" in2="SourceGraphic"/>
-      </filter>
       <linearGradient id="fz-grad-dark" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="${G2}"/><stop offset="1" stop-color="${INK}"/>
       </linearGradient>
@@ -1405,7 +1396,7 @@ FZ.bg = (function () {
     o = o || {};
     const r = U.rng(o.seed || 13);
     let s = `<rect width="${w}" height="${h}" fill="#e9e3d3"/>`;
-    s += `<rect x="${w * 0.06}" y="${h * 0.05}" width="${w * 0.88}" height="${h * 0.9}" fill="${PAPER}" stroke="${INK}" stroke-width="4" filter="url(#fz-rough)"/>`;
+    s += `<rect x="${w * 0.06}" y="${h * 0.05}" width="${w * 0.88}" height="${h * 0.9}" fill="${PAPER}" stroke="${INK}" stroke-width="4"${FZ.engine && FZ.engine.Perf.heavyFilters ? ' filter="url(#fz-rough)"' : ''}/>`;
     // page fold
     s += `<line x1="${w / 2}" y1="${h * 0.05}" x2="${w / 2}" y2="${h * 0.95}" stroke="${G2}" stroke-width="2"/>`;
     const px = w * 0.12, py = h * 0.12, pw = w * 0.34, ph = h * 0.3;

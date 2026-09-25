@@ -2,11 +2,11 @@
 
 ## Live state (as of Sep 25, ~10:40 AM IST, post audio-click cycle)
 - GitHub Pages: https://aeiouvcode.github.io/frame-zero/
-  - previous live: commit 0fee976b, md5 68bf4d9956303e5e936aa268771d6880
-  - this cycle: audio fade-in fixes + grain blend fix; new md5 bc39289d082d9a5affc5960b403308b5 (pre-deploy)
+  - previous live: commit 9405dd68, md5 bc39289d082d9a5affc5960b403308b5 (audio+grain, Sep 26 00:27)
+  - this cycle: touch-target fixes + heavyFilters wiring + def cleanup; new md5 6f8d2919ffa6c7edbc400d7e733c3d85 (pre-deploy)
 - Instinct File: https://files.instinct.com/file-01M326A1R2C7SMTDWWGT4R4V3B
   - file-01M326A1R2C7SMTDWWGT4R4V3B, PRIVATE, generation 13 -> republish this cycle
-  - staged draft revision: filerevision-01M3CR679ZJBYYPBH8K67N7RRR (audio+grain, build SUCCEEDED)
+  - draft rebuilt this cycle (touch+hygiene); publish with generation from tools file read
 - Repo: github.com/aeiouvcode/frame-zero, main, index.html at root (+ these state files)
 
 ## Verification status

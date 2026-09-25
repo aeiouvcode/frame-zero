@@ -1,8 +1,23 @@
 # CURRENT_TASK - FRAME ZERO
 
-## Current task (cycle: Sep 25, 10:28 AM + 10:28 PM IST)
-Audio mix audit + click/pop fixes. DONE - deploy pending (browser budget, fires 00:05).
-Perf audit (10:28 PM cycle): grain blend fix batched into the same deploy.
+## Current task (cycle: Sep 26, 4:29 AM IST)
+Touch-target audit + hygiene batch. DEPLOYED (commit pending this file's commit).
+
+### What happened this cycle
+- Touch-target audit (new measurable class): enumerated every interactive element's
+  CSS size at 390px. .fz-btn 46px PASS, hotzones page-unit-sized PASS. TWO DEFECTS:
+  (1) the max-width:480px media query shrank .fz-icon-btn to 40px - sound/clue/pause/
+  settings buttons rendered BELOW the 44px floor on every phone. Raised to 44px.
+  (2) settings .seg .fz-btn min-height 36px. Raised to 44px.
+- Hygiene: wired the dead Perf.heavyFilters getter into manuscriptPage (low-tier
+  devices now skip the feTurbulence displacement on the manuscript prop); deleted
+  unused SVG filter defs fz-rough-hard and fz-grain (zero url() refs, ~440 bytes).
+- PWA manifest: ASSESSED, deferred honestly. Data-URL manifests parse in current
+  Chrome (crbug 349617666 fixed) but installability also wants 192/512 icons -
+  PNG data-URLs bloat the bundle, SVG icon support partial, Safari ignores
+  manifests entirely (apple-touch-icon needs a real hosted file, impossible under
+  the single-file constraint). Marginal value for a one-sitting manga. Revisit
+  only if the project ever allows hosted assets.
 
 ### What happened this cycle
 - Static audio-mix audit (can't hear Web Audio; built a measurable model instead):
@@ -41,10 +56,11 @@ Easings all out/inOut (no linear); duration-vs-distance speeds 0.2-2.6, median
 Ch2-5 use zero animated moves - judged correct, adding motion would over-animate.
 
 ## Next actions (priority order)
-1. PWA manifest candidate (needs CSP manifest-src change; installability on phone).
-2. Re-audit classes on rotation: timing, framing, reduced-motion, audio, perf.
-3. Perf residuals: heavyFilters dead getter (wire tier-low to skip manuscript
-   feTurbulence or delete the getter); unused SVG defs fz-rough-hard/fz-grain.
+1. Re-audit classes on rotation: timing, framing, reduced-motion, audio, perf,
+   touch targets.
+2. Design pass candidate: title screen / settings typography at 390px (user's
+   primary axis - no measurable model yet, judgment-driven).
+3. PWA manifest: deferred with reasons (see above).
 
 ## Standing rules
 - User steer (Sep 21): design is the primary grading axis at 390px phone-first.

@@ -31,6 +31,10 @@ saves. ?debug=1.
 - Timing verification: stopwatch via tapResolve polling is cheaper than screenshot loops.
 - Audio: beds must fade IN (exp ramp) not start at full gain - step transients click.
   Mute/volume ramps need cancelScheduledValues + setValueAtTime anchoring.
+- Touch targets: media queries that shrink chrome below 44px defeat the base
+  rule's compliance - audit the RENDERED size at 390px, not the base rule.
+- Verify edit-script assumptions before batch-applying: grep prints lie when
+  multiple rules match (base 46px + media-query 40px override). Check each.
 - Perf: full-screen mix-blend-mode layers above animating canvases force per-frame
   blend recomputes - source-over + opacity compensation is the fix (grain, Sep 25).
   Perf audit model: particle caps, panels/scene, filter usage, backdrop-filter,
