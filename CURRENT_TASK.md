@@ -1,7 +1,19 @@
 # CURRENT_TASK - FRAME ZERO
 
-## Current task (cycle: Sep 26, 4:29 AM IST)
-Touch-target audit + hygiene batch. DEPLOYED (commit pending this file's commit).
+## Current task (cycle: Sep 26, 10:29 AM IST)
+Design pass: title + settings at 390px (user's primary axis). DEPLOYED this commit.
+
+### What happened this cycle
+- Title screen: strong (motif, wordmark, hierarchy all hold). ONE flaw: the footer
+  "HEADPHONES RECOMMENDED - SOUND STARTS AFTER FIRST TAP" wrapped accidentally into
+  a ragged two lines. Fixed with a deliberate <br> stack.
+- Settings: (1) Performance 2x2 grid was ragged against the other rows' right edge -
+  now full-width, reads as a deliberate block. (2) ERASE SAVE (destructive) was styled
+  identically to neutral controls - now .fz-danger crimson text+border (accent
+  discipline: red marks the consequential action). (3) Volume slider's red kept -
+  the single playful accent on a utility screen, deliberate.
+- Title/settings typography otherwise PASS: label serif vs letterspaced mono caps
+  is a clean register split; spacing rhythm holds.
 
 ### What happened this cycle
 - Touch-target audit (new measurable class): enumerated every interactive element's
@@ -56,11 +68,11 @@ Easings all out/inOut (no linear); duration-vs-distance speeds 0.2-2.6, median
 Ch2-5 use zero animated moves - judged correct, adding motion would over-animate.
 
 ## Next actions (priority order)
-1. Re-audit classes on rotation: timing, framing, reduced-motion, audio, perf,
+1. Design pass continuation: in-game dialogue bubbles + chapter-end screens at
+   390px (same judgment-driven method as this cycle).
+2. Re-audit classes on rotation: timing, framing, reduced-motion, audio, perf,
    touch targets.
-2. Design pass candidate: title screen / settings typography at 390px (user's
-   primary axis - no measurable model yet, judgment-driven).
-3. PWA manifest: deferred with reasons (see above).
+3. PWA manifest: deferred with reasons (recorded above).
 
 ## Standing rules
 - User steer (Sep 21): design is the primary grading axis at 390px phone-first.

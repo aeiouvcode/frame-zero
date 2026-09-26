@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QRTHXj6s8NTjDr0dhIshvEwIUejnDWqWNvWdn8zk1Cg='; style-src 'sha256-arc9W06wpxlEYsc+fJLOQf2+CyytNO8bvKtkSpslqMo='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dypCuerBPJTUhRM2eHfGLogFVKyjmyMVoTunUzCNLxg='; style-src 'sha256-VUabsu5Tc+7BEQy0GjNfMCt1tRpihlFcHF+li7XeDGI='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -279,7 +279,8 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
   transition: transform 120ms ease, background 200ms ease, opacity 200ms ease;
 }
 .fz-btn:active { transform: scale(.94); }
-.fz-btn:disabled { opacity: .3; cursor: default; }
+.fz-btn.fz-danger { color: var(--red); border-color: rgba(164, 22, 26, .6); }
+  .fz-btn:disabled { opacity: .3; cursor: default; }
 .fz-btn:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .fz-btn.primary { background: var(--ui-fg); color: #14110d; font-weight: bold; }
 #fz-next { background: transparent; color: var(--ui-fg); font-weight: normal; opacity: .85; }
@@ -349,7 +350,7 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 .set-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid rgba(233,228,214,.12); font-size: 14px; letter-spacing: 1px; }
 .set-row label { flex: 1; }
 .set-row .seg { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-#set-perf.seg { display: grid; grid-template-columns: repeat(2, 1fr); width: min(248px, 62vw); }
+#set-perf.seg { display: grid; grid-template-columns: repeat(2, 1fr); width: 100%; }
 #set-perf.seg .fz-btn { text-align: center; }
 .seg .fz-btn { min-width: 0; min-height: 44px; padding: 7px 12px; font-size: 12px; } /* 44px touch-target floor */
 .seg .fz-btn.sel { background: var(--ui-fg); color: #14110d; }
@@ -2419,7 +2420,7 @@ FZ.ui = (function () {
           <button class="fz-btn" id="fz-title-settings">SETTINGS</button>
         </div>
         <div id="fz-title-progress"></div>
-        <div id="fz-title-foot">HEADPHONES RECOMMENDED - SOUND STARTS AFTER FIRST TAP</div>
+        <div id="fz-title-foot">HEADPHONES RECOMMENDED<br>SOUND STARTS AFTER FIRST TAP</div>
       </div>
       <div class="fz-overlay hidden" id="fz-settings-overlay" role="dialog" aria-label="Settings">
         <h2>SETTINGS</h2>
@@ -2436,7 +2437,7 @@ FZ.ui = (function () {
           <div class="set-row"><label>Audio captions</label><div class="seg" id="set-captions">
             <button class="fz-btn" data-v="on">ON</button><button class="fz-btn" data-v="off">OFF</button></div></div>
           <div class="set-row"><label>Progress</label><div class="seg">
-            <button class="fz-btn" id="set-wipe">ERASE SAVE</button></div></div>
+            <button class="fz-btn fz-danger" id="set-wipe">ERASE SAVE</button></div></div>
         </div>
         <div style="height:26px"></div>
         <button class="fz-btn" id="fz-settings-close">CLOSE</button>
