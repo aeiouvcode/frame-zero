@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dypCuerBPJTUhRM2eHfGLogFVKyjmyMVoTunUzCNLxg='; style-src 'sha256-UEZzLc7PJWjmk2iX0i8qAYh9eVw6ZQYsRY6uznU41sM='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HSls62MpGEJF0xvH9COmgG3qUNUE+Ji41jbYYqQVK9k='; style-src 'sha256-ndhheI2sasoa6pzSdBpuUMfYXPcDqd4TclzNlUEXhKw='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -435,6 +435,7 @@ body.motion-reduced #fz-title-art .mote, body.motion-reduced #fz-title-word { an
 }
 .choice-opt .co-label { font-size: 18px; letter-spacing: 4px; margin-bottom: 6px; }
 .choice-opt .co-sub { font-size: 12.5px; opacity: .6; line-height: 1.5; }
+.choice-opt.recovered .co-sub { color: var(--red); opacity: .9; }
 .choice-opt { animation: fz-choice-in 380ms cubic-bezier(.22,1,.36,1) both; }
 .choice-opt:hover, .choice-opt:focus-visible { border-color: var(--red); transform: translateX(4px); }
 .choice-opt:active { transform: scale(.98); }
@@ -565,6 +566,7 @@ body.motion-reduced #fz-pageturn.turn { animation: none !important; }
 </div>
 <script>
 
+
 /* ============================================================
    FRAME ZERO - 10-util.js
    Core utilities: namespace, RNG, storage, events, DOM helpers
@@ -653,11 +655,24 @@ FZ.util = (function () {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (raw) return JSON.parse(raw);
-    } catch (e) { /* private mode etc. */ }
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        // corrupted save blob: quarantine it, fail loud, start fresh
+        try {
+          localStorage.setItem(SAVE_KEY + '.corrupt', localStorage.getItem(SAVE_KEY) || '');
+          localStorage.removeItem(SAVE_KEY);
+          console.warn('[FZ] corrupted save quarantined to ' + SAVE_KEY + '.corrupt - starting fresh');
+        } catch (qe) { console.warn('[FZ] corrupted save, quarantine failed - starting fresh', qe); }
+      } else {
+        // storage unavailable (private mode, denied): play in memory, say so
+        console.warn('[FZ] save storage unavailable - progress will not persist', e);
+      }
+    }
     return null;
   }
   function storeSave(obj) {
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(obj)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(obj)); }
+    catch (e) { console.warn('[FZ] save write failed - progress this session may be lost', e); }
   }
   function wipeSave() {
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
@@ -1696,10 +1711,17 @@ FZ.engine = (function () {
   const Save = {
     data: null,
     load() {
-      this.data = U.loadSave() || {
-        v: 1, unlockedCh: 1, ch: 1, sceneIdx: 0,
-        clues: {}, settings: {}, ending: null, finished: false, startedAt: Date.now()
-      };
+      const d = { v: 1, unlockedCh: 1, ch: 1, sceneIdx: 0, clues: {}, endings: {}, fragments: {}, settings: {}, ending: null, startedAt: Date.now() };
+      const raw = U.loadSave();
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        if (Number.isInteger(raw.unlockedCh)) d.unlockedCh = Math.min(Math.max(raw.unlockedCh, 1), 5);
+        if (Number.isInteger(raw.ch) && raw.ch >= 1 && raw.ch <= 6) d.ch = raw.ch;
+        if (Number.isInteger(raw.sceneIdx) && raw.sceneIdx >= 0) d.sceneIdx = raw.sceneIdx;
+        ['clues', 'endings', 'fragments', 'settings'].forEach(k => { if (raw[k] && typeof raw[k] === 'object' && !Array.isArray(raw[k])) d[k] = raw[k]; });
+        if (typeof raw.ending === 'string') d.ending = raw.ending;
+        if (typeof raw.startedAt === 'number') d.startedAt = raw.startedAt;
+      }
+      this.data = d;
       return this.data;
     },
     save(patch) {
@@ -2183,7 +2205,7 @@ FZ.engine = (function () {
       ['flash-red', 'flash-white', 'blackout', 'static-noise'].forEach(k => { const fl = FX.layers[k]; if (fl) fl.classList.remove('on', 'fade-slow'); });
       FZ.ui.setProgress(this.progressOf(scene));
       FZ.ui.setChapterLabel(scene.ch, scene.chapterTitle);
-      document.getElementById('fz-page').classList.toggle('ch5space', scene.ch >= 5);
+      document.getElementById('fz-page').classList.toggle('ch5space', scene.ch === 5);
       Save.save({ ch: scene.ch, sceneIdx: this.chapterSceneIndex(scene) });
       const ctx = this.ctxFor(scene);
       try {
@@ -2289,7 +2311,7 @@ FZ.engine = (function () {
 
 /* ---- story registry (must exist before chapter files evaluate) ---- */
 FZ.story = (function () {
-  const byChapter = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+  const byChapter = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
   return {
     add(scene) {
       FZ.engine.Engine.register(scene);
@@ -2299,7 +2321,7 @@ FZ.story = (function () {
       const arr = byChapter[ch];
       return arr && arr.length ? arr[Math.min(idx, arr.length - 1)] : null;
     },
-    chapterSceneCount(ch) { return byChapter[ch].length; }
+    chapterSceneCount(ch) { return (byChapter[ch] || []).length; }
   };
 })();
 
@@ -2319,14 +2341,16 @@ FZ.ui = (function () {
     2: 'THE BOY BETWEEN PANELS',
     3: 'THE ERASED CITY',
     4: 'SEVEN VERSIONS OF MIKA',
-    5: 'FRAME ZERO'
+    5: 'FRAME ZERO',
+    6: 'LOST PAGES'
   };
   const CHAPTER_LOGS = {
     1: 'A manuscript nobody remembers writing.',
     2: 'Someone in the margins knows your name.',
     3: 'Every draft that was ever thrown away.',
     4: 'They had been arguing since the page dried.',
-    5: 'The room between the last panel and the end of the page.'
+    5: 'The room between the last panel and the end of the page.',
+    6: 'Seven pages the book tried to forget.'
   };
 
   const CLUE_BOOK = {
@@ -2643,6 +2667,19 @@ FZ.ui = (function () {
         FZ.engine.Engine.goto(FZ.story.sceneAt(ch, 0));
       });
     }
+    // LOST PAGES bonus card: opens once any ending has been seen
+    const sv = FZ.engine.Save.data;
+    const bOpen = Object.keys(sv.endings || {}).length > 0;
+    const frN = Object.keys(sv.fragments || {}).length;
+    const bb = U.el('button', 'fz-btn chapter-item bonus' + (bOpen ? '' : ' locked'), list);
+    bb.style.animationDelay = (5 * 45) + 'ms';
+    bb.innerHTML = `<span class="ct"><span class="chn">+</span><span>${bOpen ? CHAPTER_TITLES[6] : '??????'}<span class="log">${bOpen ? CHAPTER_LOGS[6] : 'Reach an ending to recover what was cut.'}</span></span></span><span class="st">${bOpen ? frN + '/7 RECOVERED' : 'SEALED'}</span>`;
+    if (bOpen) bb.addEventListener('click', () => {
+      closeOverlays();
+      U.$('#fz-title-screen').classList.add('hidden');
+      FZ.audio.start();
+      FZ.engine.Engine.goto('lp_hub');
+    });
     U.$('#fz-chapters-overlay').classList.remove('hidden');
   }
   function syncSettingsUI() {
@@ -2677,7 +2714,7 @@ FZ.ui = (function () {
       const list = box.querySelector('.choice-list');
       list.innerHTML = '';
       options.forEach((o, i) => {
-        const b = U.el('button', 'choice-opt' + (o.predrawn ? ' predrawn' : ''), list);
+        const b = U.el('button', 'choice-opt' + (o.predrawn ? ' predrawn' : '') + (o.recovered ? ' recovered' : ''), list);
         b.style.animationDelay = (i * 60) + 'ms';
         b.innerHTML = `<div class="co-label">${U.escapeHtml(o.label)}</div><div class="co-sub">${U.escapeHtml(o.sub || '')}</div>`;
         b.addEventListener('click', () => {
@@ -4024,7 +4061,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'show', panel: 'warning', anim: 'slam', dur: 350 }, { t: 'sfx', name: 'impact' }, { t: 'fx', name: 'shake', ms: 400 },
     { t: 'amb', name: 'drone', arg: -10 }, { t: 'corrupt', v: 1 },
     c => { document.getElementById('fz-ui').classList.remove('chrome-gone'); },
-    { t: 'say', who: 'MIKA', text: 'It can see us. It can see ME. Ren - it says frame 004 of 000. What is frame zero?', x: 500, y: 1050, w: 640, tail: 'up', style: 'shout' },
+    { t: 'say', who: 'MIKA', text: 'It can see us. It can see ME. Ren\u2014it says frame 004 of 000. What is frame zero?', x: 500, y: 1050, w: 640, tail: 'up', style: 'shout' },
     { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
     { t: 'say', who: 'REN', text: 'The first page. The one it was built to protect.', x: 500, y: 1200, w: 480, tail: 'up', style: 'whisper' },
     { t: 'wait', ms: 1500 },
@@ -4173,7 +4210,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
     { t: 'show', panel: 'mirror', anim: 'up', dur: 700 },
     { t: 'cam', x: 500, y: 1250, z: 1.2, dur: 800, ease: 'inOut' },
-    { t: 'say', who: 'MIKA', text: 'That face. That\u2019s - that\u2019s mine.', x: 260, y: 1150, w: 380, tail: 'right', style: 'shout' },
+    { t: 'say', who: 'MIKA', text: 'That face. That\u2019s\u2014that\u2019s mine.', x: 260, y: 1150, w: 380, tail: 'right', style: 'shout' },
     { t: 'wait', ms: 1400 }, { t: 'clearDlg' },
     { t: 'say', who: 'THE EDITOR', text: 'I was you. Or I wear you. The page stopped distinguishing a long time ago.', x: 636, y: 1150, w: 460, tail: 'left', style: 'whisper red' },
     { t: 'tap' }
@@ -4347,6 +4384,170 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
     { t: 'wait', ms: 1600 },
     c => FZ.ui.showEndCard()
   ] });
+  /* ================= LOST PAGES (bonus chapter) ================= */
+  const LP_TITLE = 'LOST PAGES';
+  const FRAG_TITLES = {
+    v1: 'THE FIRST LINE', v2: 'THE CUP', v3: 'FRAMES 113-118', v4: 'SEVEN SECONDS OF RAIN',
+    v5: 'THE UN-DRAWN STREET', v6: 'A DIFFERENT HAND', v7: 'THE SEVENTH VOTE'
+  };
+  function lpRecovered(id) {
+    const d = FZ.engine.Save.data;
+    const fr = d.fragments || (d.fragments = {});
+    if (!fr[id]) { fr[id] = Date.now(); FZ.engine.Save.save(); }
+    return Object.keys(fr).length;
+  }
+
+  S.add({ id: 'lp_hub', ch: 6, chapterTitle: LP_TITLE, next: null, beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lparchive', x: 52, y: 200, w: 896, h: 560, art: B.archiveRoom(896, 560, { seed: 77, flicker: true }), aria: 'The archive, seven empty frames' });
+      c.amb('hum');
+    },
+    { t: 'narr', text: 'SEVEN PAGES THE BOOK TRIED TO FORGET.', x: 500, y: 130, w: 780 },
+    { t: 'wait', ms: 1800 }, { t: 'clearDlg' },
+    { t: 'narr', text: 'Every recovered page stays recovered.', x: 500, y: 860, w: 640 },
+    { t: 'wait', ms: 1600 }, { t: 'clearDlg' },
+    async c => {
+      const d = FZ.engine.Save.data;
+      const fr = d.fragments || {};
+      const n = Object.keys(fr).length;
+      if (n >= 7 && !d.codaSeen) { d.codaSeen = Date.now(); FZ.engine.Save.save(); FZ.engine.Engine.goto('lp_coda'); return; }
+      const opts = [];
+      for (let i = 1; i <= 7; i++) {
+        const id = 'v' + i, read = !!fr[id];
+        opts.push({ id: id, label: 'PAGE 0' + i, sub: read ? FRAG_TITLES[id] : 'still lost', recovered: read });
+      }
+      const pick = await FZ.ui.showChoice('WHICH PAGE DO YOU RECOVER?  ' + n + '/7', opts);
+      FZ.engine.Engine.goto('lp_' + pick);
+    }
+  ] });
+
+  S.add({ id: 'lp_v1', ch: 6, chapterTitle: LP_TITLE, next: 'lp_hub', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lpv1', x: 70, y: 110, w: 860, h: 1280, art: B.manuscriptPage(860, 1280, { blank: true, title: 'FRAME ZERO' }), aria: 'A blank manuscript page' });
+    },
+    { t: 'sfx', name: 'pageTurn' },
+    { t: 'narr', text: 'PAGE 01 \u2014 THE FIRST LINE', x: 500, y: 60, w: 700 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: '01', text: 'I was the first thing he drew. Before the city. Before the boy. A line, then a face, then a rule: do not look at the reader.', x: 500, y: 1440, w: 740, tail: 'up' },
+    { t: 'wait', ms: 2800 }, { t: 'clearDlg' },
+    { t: 'say', who: '01', text: 'Six more of me came after. The book needed seven of everything. I never asked why.', x: 500, y: 1440, w: 700, tail: 'up' },
+    c => { const n = lpRecovered('v1'); FZ.ui.caption('FRAGMENT RECOVERED \u2014 ' + n + ' OF 7'); },
+    { t: 'tap' }
+  ] });
+
+  S.add({ id: 'lp_v2', ch: 6, chapterTitle: LP_TITLE, next: 'lp_hub', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lpv2', x: 52, y: 420, w: 896, h: 620, art: B.apartment(896, 620, { mugs: 1, door: true, photoBlank: true }), aria: 'An apartment, one cup on the table' });
+    },
+    { t: 'sfx', name: 'paperRustle' },
+    { t: 'narr', text: 'PAGE 02 \u2014 THE CUP', x: 500, y: 330, w: 700 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: '02', text: 'I moved the cup to see if the drawing would keep up. It had already moved. I put it back. It had already been put back.', x: 500, y: 1150, w: 740, tail: 'up' },
+    { t: 'wait', ms: 2800 }, { t: 'clearDlg' },
+    { t: 'say', who: '02', text: 'I stopped touching things in that room.', x: 500, y: 1150, w: 520, tail: 'up' },
+    c => { const n = lpRecovered('v2'); FZ.ui.caption('FRAGMENT RECOVERED \u2014 ' + n + ' OF 7'); },
+    { t: 'tap' }
+  ] });
+
+  S.add({ id: 'lp_v3', ch: 6, chapterTitle: LP_TITLE, next: 'lp_hub', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lpv3', x: 52, y: 420, w: 896, h: 620, art: B.cctv(896, 620, { figure: true, time: '02:13:07', timeRed: true }), border: 'thin', aria: 'CCTV frame, a pale figure at 02:13' });
+    },
+    { t: 'sfx', name: 'glitch' },
+    { t: 'narr', text: 'PAGE 03 \u2014 FRAMES 113-118', x: 500, y: 330, w: 700 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: '03', text: 'If you only exist for six frames, you learn to move carefully. Frame 113 I am not there. Frame 114 I am. Nobody reviewed the footage.', x: 500, y: 1150, w: 760, tail: 'up' },
+    { t: 'wait', ms: 2800 }, { t: 'clearDlg' },
+    { t: 'say', who: '03', text: 'I reviewed it. Every night at 2:13.', x: 500, y: 1150, w: 560, tail: 'up' },
+    c => { const n = lpRecovered('v3'); FZ.ui.caption('FRAGMENT RECOVERED \u2014 ' + n + ' OF 7'); },
+    { t: 'tap' }
+  ] });
+
+  S.add({ id: 'lp_v4', ch: 6, chapterTitle: LP_TITLE, next: 'lp_hub', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lpv4', x: 180, y: 330, w: 640, h: 800, art: B.phoneScreen(640, 800, { contacts: ['MOM', 'KURODA', null, 'WORK'] }), aria: 'A phone screen with a blank contact' });
+    },
+    { t: 'sfx', name: 'breathIn' },
+    { t: 'narr', text: 'PAGE 04 \u2014 SEVEN SECONDS OF RAIN', x: 500, y: 240, w: 760 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: '04', text: 'She kept the message. Seven seconds. No number, no name. Just rain, and me saying her name.', x: 500, y: 1220, w: 700, tail: 'up' },
+    { t: 'wait', ms: 2800 }, { t: 'clearDlg' },
+    { t: 'say', who: '04', text: 'I practiced for a year so it would sound like an accident.', x: 500, y: 1220, w: 620, tail: 'up' },
+    c => { const n = lpRecovered('v4'); FZ.ui.caption('FRAGMENT RECOVERED \u2014 ' + n + ' OF 7'); },
+    { t: 'tap' }
+  ] });
+
+  S.add({ id: 'lp_v5', ch: 6, chapterTitle: LP_TITLE, next: 'lp_hub', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lpv5', x: 52, y: 420, w: 896, h: 640, art: B.unfinishedCity(896, 640, { floatPanels: 1, seed: 55 }), aria: 'An erased city, one panel still floating' });
+    },
+    { t: 'sfx', name: 'thunder' },
+    { t: 'narr', text: 'PAGE 05 \u2014 THE UN-DRAWN STREET', x: 500, y: 330, w: 740 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: '05', text: 'They erased the city around my street last. I watched my window go, then the stairs, then the door.', x: 500, y: 1160, w: 720, tail: 'up' },
+    { t: 'wait', ms: 2800 }, { t: 'clearDlg' },
+    { t: 'say', who: '05', text: 'One panel of my street is still up there, floating. Somebody kept it. I choose to believe kept. Not forgot.', x: 500, y: 1160, w: 720, tail: 'up' },
+    c => { const n = lpRecovered('v5'); FZ.ui.caption('FRAGMENT RECOVERED \u2014 ' + n + ' OF 7'); },
+    { t: 'tap' }
+  ] });
+
+  S.add({ id: 'lp_v6', ch: 6, chapterTitle: LP_TITLE, next: 'lp_hub', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lpv6', x: 70, y: 110, w: 860, h: 1280, art: B.manuscriptPage(860, 1280, { blank: true, title: 'FRAME ZERO' }).replace('</svg>', '<path d="M150 1150 L720 1196" stroke="' + RED + '" stroke-width="3"/></svg>'), aria: 'A manuscript page with a single red hairline' });
+    },
+    { t: 'sfx', name: 'inkScratch' },
+    { t: 'narr', text: 'PAGE 06 \u2014 A DIFFERENT HAND', x: 500, y: 60, w: 720 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: '06', text: 'The boy is drawn in one hand. I am drawn in another. Look at my outline: hesitant, retraced, copied from something.', x: 500, y: 1440, w: 740, tail: 'up' },
+    { t: 'wait', ms: 2800 }, { t: 'clearDlg' },
+    { t: 'say', who: '06', text: 'One of us is the original. The math says him. The math has never been asked to prove it.', x: 500, y: 1440, w: 680, tail: 'up' },
+    c => { const n = lpRecovered('v6'); FZ.ui.caption('FRAGMENT RECOVERED \u2014 ' + n + ' OF 7'); },
+    { t: 'tap' }
+  ] });
+
+  S.add({ id: 'lp_v7', ch: 6, chapterTitle: LP_TITLE, next: 'lp_hub', beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lpv7', x: 52, y: 250, w: 896, h: 1000, art: (() => {
+        let s = '<rect width="896" height="1000" fill="#0d0b09"/>';
+        s += A.character({ who: 'silhouette', expr: 'neutral', x: 448, y: 560, scale: 2.3, item: false });
+        s += '<circle cx="408" cy="505" r="7" fill="' + RED + '"/><circle cx="488" cy="505" r="7" fill="' + RED + '"/>';
+        s += A.vignette(896, 1000, 1.15);
+        return A.svg(896, 1000, s);
+      })(), aria: 'A silhouette with red eyes' });
+      c.amb('drone');
+    },
+    { t: 'sfx', name: 'heartbeat' },
+    { t: 'narr', text: 'PAGE 07 \u2014 THE SEVENTH VOTE', x: 500, y: 160, w: 720 },
+    { t: 'wait', ms: 1500 }, { t: 'clearDlg' },
+    { t: 'say', who: '07', text: 'Six of us answer when the question is asked. I answer before. It is not a gift. I have already read the page you are on.', x: 500, y: 1330, w: 740, tail: 'up' },
+    { t: 'wait', ms: 2800 }, { t: 'clearDlg' },
+    { t: 'say', who: '07', text: 'You want to know which of us looked back at you, specifically. You already know. You counted.', x: 500, y: 1330, w: 700, tail: 'up' },
+    c => { const n = lpRecovered('v7'); FZ.ui.caption('FRAGMENT RECOVERED \u2014 ' + n + ' OF 7'); },
+    { t: 'tap' }
+  ] });
+
+  S.add({ id: 'lp_coda', ch: 6, chapterTitle: LP_TITLE, next: null, beats: [
+    c => {
+      c.camSnap(500, 750, 1, 0);
+      c.addPanel({ id: 'lpcoda', x: 70, y: 110, w: 860, h: 1280, art: B.manuscriptPage(860, 1280, { blank: true, title: 'FRAME ZERO' }).replace('</svg>', '<path d="M180 640 L680 640" stroke="' + RED + '" stroke-width="4"/></svg>'), aria: 'The last page, one red line across it' });
+      c.amb('none');
+    },
+    { t: 'sfx', name: 'heartbeat' },
+    { t: 'narr', text: 'THE LAST PAGE WAS NEVER BLANK.', x: 500, y: 220, w: 780 },
+    { t: 'wait', ms: 2400 }, { t: 'clearDlg' },
+    { t: 'narr', text: 'IT WAS WAITING FOR ALL SEVEN OF YOU.', x: 500, y: 1240, w: 780 },
+    { t: 'wait', ms: 2400 },
+    { t: 'tap' }
+  ] });
+
 })();
 
 /* ============================================================
@@ -4356,6 +4557,8 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
 'use strict';
 (function boot() {
   const U = FZ.util, E = FZ.engine;
+
+
   const $ = U.$;
 
   function init() {
@@ -4378,7 +4581,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
 
     // unlock chapters as the reader reaches them
     U.bus.on('save:updated', d => {
-      if (d.ch > d.unlockedCh) { d.unlockedCh = d.ch; U.storeSave(d); }
+      if (d.ch >= 1 && d.ch <= 5 && d.ch > d.unlockedCh) E.Save.save({ unlockedCh: d.ch });
     });
   }
 
