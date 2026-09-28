@@ -27,3 +27,5 @@
 - Save hardening: corrupt save quarantines to framezero.save.v1.corrupt (console.warn, fresh start); schema merge + clamps (unlockedCh 1..5, ch 1..6, endings/fragments keys); quota/SecurityError -> loud warn, in-memory play
 
 - Hub polish (Sep 27 4:30 AM): recovered fragment rows show FRAG_TITLES in crimson (--red) via .choice-opt.recovered; 'PAGE 0i' label unadorned; prep/graph-audit.js guards the full scene graph.
+- Fail-loud audio (Sep 27 4:31 PM): ctx.sfx/ctx.amb console.warn on unknown names (owner 18:36 no-silent-failure rule); prep/registry-audit.js guards clue + audio registries.
+- Art-structure audit (Sep 28 4:31 AM): prep/art-audit.js 25/25 - all 14 FZ.bg generators asserted (composition floors, well-formed roots, sevenPanels layout geometry), palette discipline (35 hexes, near-achromatic-or-crimson, spread<=30), crimson discipline (cctv REC dot exactly-1 always, timestamp adds exactly-1, clock213 ring only with {red:true}).

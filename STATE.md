@@ -1,25 +1,35 @@
 # STATE - FRAME ZERO
-Updated: Sep 27, 4:36 AM IST (staged; live repo still carries the pre-spine files)
+Updated: Sep 28, 4:36 AM IST (cycle closeout: art-audit full coverage)
 
 ## Live
-- Pages: https://aeiouvcode.github.io/frame-zero/ @ commit 699d8b40, md5 3b418ee1a2faba8befde310ec3062d2b (unchanged - go-live gate, no owner yes yet)
-- Instinct File (PRIVATE): file-01M326A1R2C7SMTDWWGT4R4V3B, GENERATION 18, boot-verified (hub polish + LOST PAGES) (design pass: title footer stack, settings perf-grid, ERASE SAVE crimson)
-- Instinct File (PRIVATE): file-01M326A1R2C7SMTDWWGT4R4V3B, generation 16, boot-verified
+- Pages: https://aeiouvcode.github.io/frame-zero/ @ commit bf3ff71d, md5 1c24bebd1c6ee37e49b26478cdadd563 (gen 18: LOST PAGES + save hardening). Gated - no new public push without owner yes.
+- Instinct File (PRIVATE): file-01M326A1R2C7SMTDWWGT4R4V3B, GENERATION 20, index.html md5 254d51ead41cb85014591c9b37762447, boot-verified (gen-19 coda re-read + fail-loud sfx/amb).
+- Archive File (PRIVATE): file-01M3GKZV7ZBPN2X34B5C33P4P1 - durable harnesses + deploy machinery. Proven under the Sep 27 15:42 sandbox wipe.
 
 ## Staged (NOT pushed - go-live gate)
-- index.html md5 1c24bebd1c6ee37e49b26478cdadd563 (INCLUDES the 9e38a2cd LOST PAGES work + hub polish): LOST PAGES bonus chapter (ch6: lp_hub + lp_v1..v7 + lp_coda, fragment state in Save.data.fragments, BONUS chapter card gated on any ending) + Save hardening (E1 fail-loud loadSave/storeSave w/ corrupt quarantine to framezero.save.v1.corrupt; E2 schema merge+clamps unlockedCh 1..5 / ch 1..6; E3 boot route clamp; byChapter 1..6 + chapterSceneCount guard) + earlier writing-audit em-dash fixes. node --check OK, 7/7 logic tests, boot-verified in File preview (revision filerevision-01M3FGZHBN5SQBR0FF3KJAJCCG)
-- Doc spine created this run (STATE/MISTAKES/PLAN/FEATURE-MAP); legacy CURRENT_TASK/CHECKPOINT/HANDOFF superseded, kept for history
+- gen-20 index.html (254d51ea) + five audit harnesses (save, graph, beat, registry, art) + spine refresh.
+
+## This cycle (Sep 27 10:31 PM wake)
+- Concern carried in: lp_v3 "sparse composition". DISPROVEN: v3 composes B.cctv(896,620,{figure:true,time:'02:13:07',timeRed:true}); blank captures were the known 1Hz rAF capture-env artifact. See MISTAKES.md.
+- NEW audit class: prep/art-audit.js - evals real FZ.util/art/bg IIFEs in node, asserts signature elements of generated SVGs (cctv red timestamp, >=15 element composition, manuscript title+paper, v6 crimson hairline, v7 two red eyes + silhouette, well-formed roots). 9/9 PASS.
+- Full harness suite: save 7/7, graph 9/9, beat 7/7, registry 7/7, art 9/9.
+- Security 5-check: PASS. S1 zero external refs (only w3.org namespaces); S2 CSP sha256 matches current script+style bytes; S3 no eval/new Function; S4 all 3 svg innerHTML sites route through sanitizeSvg; S5 localStorage fully try/catch guarded + corrupt quarantine.
+- Outcome: NO-SHIP. No defect found, no app change made, no File gen 21. Critic gate not engaged (nothing changed to grade). Honest cycle result: audit evidence only.
+
+## Cycle Sep 28 4:31 AM
+- Closed last cycle's -2 residual: art-audit now covers ALL 14 FZ.bg generators (8 scene full-SVG checks with composition floors, 3 fragment checks, sevenPanels layout-object geometry, palette discipline over 35 distinct hexes, crimson-discipline counts). 25/25 PASS.
+- Calibration findings (all test premises, NOT app defects): cctv REC dot is always-on crimson by design (asserted as exactly-1 occurrence); clock213 red opt is {red:true}, callers correctly map clockRed via archiveRoom; palette family max channel spread is 28 (#b3ab97 apartment floor band) so the discipline threshold is 30.
+- Input-flow audit evaluated and DEFERRED: advance is a single global control (#fz-next -> Engine.advance()); a per-panel audit would be near-vacuous. The real gap is interaction-GATED scenes (required taps before advance) - queued with a proper definition.
+- Full suite: save 7/7, graph 9/9, beat 7/7, registry 7/7, art 25/25. Security 5-check unchanged (PASS, re-verified last cycle; no app code touched since).
+- Outcome: NO-SHIP again (no app change warranted). Two consecutive audit-only cycles: app is holding up under deepening scrutiny, not stagnating - the harness net is what grew.
 
 ## Gated
-- ALL public go-lives hold for the owner's explicit yes via parent (owner WhatsApp Sep 26 17:26: "before going live you will need my permission"). Supersedes Sep 21 autonomous-deploy authority. PRIVATE File publishes remain in scope.
+- GATE LIFTED for this push: owner WhatsApp Sep 28 5:56:46 AM "go live on all" (reply to the gated-items list naming FRAME ZERO #2) covers the gen-20 Pages push. Future pushes need a fresh yes.
 
 ## Next steps (ranked - see PLAN.md)
-1. DONE: File gen 18 live (PRIVATE). Pages push still gated on owner yes (staged payload now md5 1c24bebd)
-2. Push staged payload on owner go-live yes
-3. Manga surface vocabulary pass (dialogue bubbles, chapter-end cards)
+1. GRANTED Sep 28 5:56 AM: gen-20 Pages push - deploy package sent to bridge this cycle.
+2. Next audit class: interaction-GATE audit (scenes requiring a tap/interaction before advance - assert the gate is reachable and wired). Definition: find panels setting required-interaction flags, assert the interactive element exists in that panel's art/hotzones.
+3. Manga surface vocabulary pass (dialogue bubbles, chapter-end cards) - deferred, design move.
 
 ## Operating rules (owner, via parent; all verified on his WhatsApp)
-1. BROWSER-MINIMAL (18:28): browser only when strictly necessary - CLI/local/API first. (Deploy rail needs browser for vault fill; critic captures are necessary use.)
-2. 20-MIN RULE (final 18:29 + LOOP-STUCK addendum 18:31): 20 min on the same problem WITHOUT SOLVING (or catching yourself re-running the same failing approach = the stuck signal) -> stop, log attempts in MISTAKES.md, ESCALATE to the owner via parent (what tried, what's blocking, ask for his advice/plan), take the next PLAN.md move while awaiting his steer. Never silently abandon.
-3. CODE QUALITY (18:36): no broad catch-alls - catch specific failure modes, else fail LOUD; silent failure = defect logged in MISTAKES.md. Verification must be non-vacuous (digest/string assertions: node --check + live md5 + live grep for the changed string). Review/critic passes read failure paths (console errors, blank captures) before approving - no vibe-LGTM.
-4. LOGIC-FIRST (19:46, verbatim "improve the logic on our projects"): prefer moves deepening mechanics/state/correctness over looks; rank PLAN.md accordingly.
+1. BROWSER-MINIMAL. 2. 20-MIN RULE (log + escalate, never silently abandon). 3. CODE QUALITY (fail loud, non-vacuous verification). 4. LOGIC-FIRST. 5. BACKUP MIRROR (snapshot tarball to parent every closeout; local-only state is losable).

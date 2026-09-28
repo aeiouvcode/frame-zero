@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HSls62MpGEJF0xvH9COmgG3qUNUE+Ji41jbYYqQVK9k='; style-src 'sha256-ndhheI2sasoa6pzSdBpuUMfYXPcDqd4TclzNlUEXhKw='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0Xsj0j+f8dl+OY0i0F16/ZWGzK9WWwfHhrUlVlnfC44='; style-src 'sha256-ndhheI2sasoa6pzSdBpuUMfYXPcDqd4TclzNlUEXhKw='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -2137,8 +2137,8 @@ FZ.engine = (function () {
         clearDialogue: () => Dialogue.clearAll(),
         cam: o => Camera.move(o),
         camSnap: (x, y, z, r) => Camera.snapTo(x, y, z, r),
-        sfx: n => { if (FZ.audio.sfx[n]) FZ.audio.sfx[n](); },
-        amb: (n, arg) => { if (FZ.audio.amb[n]) FZ.audio.amb[n](arg); },
+        sfx: n => { if (FZ.audio.sfx[n]) FZ.audio.sfx[n](); else console.warn('[FZ] unknown sfx', n); },
+        amb: (n, arg) => { if (FZ.audio.amb[n]) FZ.audio.amb[n](arg); else console.warn('[FZ] unknown amb', n); },
         particles: (m, o) => Particles.setMode(m, o),
         fx: FX,
         hotzone: o => Interact.add(o),
@@ -4417,6 +4417,7 @@ s+=`</g>`;}s+=A.vignette(900,1380,.8);c.addPanel({id:'seven',x:50,y:60,w:900,h:1
         const id = 'v' + i, read = !!fr[id];
         opts.push({ id: id, label: 'PAGE 0' + i, sub: read ? FRAG_TITLES[id] : 'still lost', recovered: read });
       }
+      if (d.codaSeen) opts.push({ id: 'coda', label: 'THE LAST PAGE', sub: 'read it again', recovered: true });
       const pick = await FZ.ui.showChoice('WHICH PAGE DO YOU RECOVER?  ' + n + '/7', opts);
       FZ.engine.Engine.goto('lp_' + pick);
     }

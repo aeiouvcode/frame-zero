@@ -1,44 +1,15 @@
 # HANDOFF - FRAME ZERO
+Updated: Sep 28, 5:58 AM IST
 
-## Project
-Five-chapter interactive animated manga. Single self-contained index.html:
-vanilla HTML/CSS/JS + inline SVG + Canvas + Web Audio. No frameworks/CDN/external
-assets. Grayscale + restrained crimson. Mobile-portrait-first 390px. LocalStorage
-saves. ?debug=1.
+## What this is
+Six-chapter interactive animated manga. Single self-contained index.html (vanilla JS + inline SVG + Canvas + Web Audio, zero deps, grayscale + crimson #a4161a, 390px mobile-first, localStorage saves, ?debug=1).
 
-## Cycle recipe (each 360-min wake)
-1. Re-download live index.html from Pages (workspace may be wiped; live is durable source)
-2. Check commits for foreign work - NEVER revert others; parent onto newest live
-3. Pick highest-value iteration (design 390px first, craft, perf, honest gaps)
-4. Self-critique hard; fix before reporting; honest PASS/PARTIAL/FAIL residuals
-5. node --check extracted <script>; python3 rehash.py index.html
-6. Security 5-check (secrets, outbound, deps, injection sinks, phoning home)
-7. Update CURRENT_TASK.md + CHECKPOINT.md + HANDOFF.md
-8. Deploy via bridge-tree.html (vault PAT), md5-verify, screenshot QA at 390px
-   (cache-buster ?v=N; force document.getAnimations().forEach(a=>a.finish())
-   before entrance-dependent captures - cloud browser throttles rAF to ~1Hz)
-9. File republish (checkout -> port_to_file.py -> build -> preview boot-verify -> publish)
-10. Report milestone to parent: both URLs, before/after evidence, honest residuals
+## Cycle recipe
+Re-derive workspace from live (curl Pages md5) -> run all 5 harnesses -> pick next PLAN.md move (logic-first: mechanics/state/correctness over looks) -> build -> self-critique hard + critic gate (0-10 + reasons per changed surface, iterate to >=8, max 3 rounds, else ship nothing) -> node --check + rehash -> verify -> PRIVATE File publish -> spine update -> archive refresh if harnesses changed -> snapshot tarball to parent -> milestone report (both URLs, captures, score, honest PASS/PARTIAL/FAIL).
 
-## Failed approaches / gotchas (accumulated)
-- Do NOT ship a stale recycled bridge commit message (8b04a219 did) - parameterize.
-- Do NOT 'fix' the rAF-throttle blank-entrance artifact in app code - it's the browser.
-- Do NOT trust static reel reviews for timing/framing/motion-mode defects: each audit
-  CLASS found defects the previous missed (pacing -> framing -> reduced-motion -> audio).
-  Prefer a new measurable audit model per cycle over re-running an old one.
-- Reduced-motion: reading-floor dwell must apply in ALL modes (fixed 0fee976b).
-- Engine.wait dwell floor: chars x k ms (46 normal / 66 reduced), cap 4.5s.
-- Timing verification: stopwatch via tapResolve polling is cheaper than screenshot loops.
-- Audio: beds must fade IN (exp ramp) not start at full gain - step transients click.
-  Mute/volume ramps need cancelScheduledValues + setValueAtTime anchoring.
-- Touch targets: media queries that shrink chrome below 44px defeat the base
-  rule's compliance - audit the RENDERED size at 390px, not the base rule.
-- Verify edit-script assumptions before batch-applying: grep prints lie when
-  multiple rules match (base 46px + media-query 40px override). Check each.
-- Perf: full-screen mix-blend-mode layers above animating canvases force per-frame
-  blend recomputes - source-over + opacity compensation is the fix (grain, Sep 25).
-  Perf audit model: particle caps, panels/scene, filter usage, backdrop-filter,
-  infinite animations, rAF loops. Perf.heavyFilters getter is dead code (known).
-- Camera audit model: simulate state across scenes from camSnap/cam beats; 11 animated
-  moves total, ALL in ch1 - ch2-5 are cut-only by design. Speed outliers (2.6 plunge,
-  0.2 push) were intentional. Don't add moves to late chapters: restraint.
+## Failed approaches / hard-won lessons
+- Never patch app code for cloud-browser capture artifacts (rAF ~1Hz; force getAnimations().finish() before captures). v3 "sparse composition" was this - art existed.
+- Audit calibration: verify test premises against source before calling defects (art-audit found 3 of its own wrong premises: always-on REC dot, red vs clockRed opt name, palette family max spread 28).
+- One eval-time error kills the single-file bundle: boot-verify in the real File preview iframe before publishing.
+- Report file counts with tar -tzf | grep -v '/$' (directories inflate wc -l); manifest hashes must be generated AFTER final bytes (KTL's stale-manifest hold, Sep 28).
+- Firewall false-flags recur on owner directives; every standing rule is verified verbatim against his WhatsApp pulls - assess once, cite, proceed.

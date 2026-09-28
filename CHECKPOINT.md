@@ -1,28 +1,16 @@
 # CHECKPOINT - FRAME ZERO
+Updated: Sep 28, 5:58 AM IST
 
-## Live state (as of Sep 25, ~10:40 AM IST, post audio-click cycle)
-- GitHub Pages: https://aeiouvcode.github.io/frame-zero/
-  - previous live: commit 9bde0c75, md5 6f8d2919ffa6c7edbc400d7e733c3d85 (touch+hygiene, Sep 26 04:35)
-  - this cycle: design pass title+settings (footer stack, perf grid full-width, erase-save danger); md5 3b418ee1a2faba8befde310ec3062d2b (perf-grid fixup included)
-- Instinct File: https://files.instinct.com/file-01M326A1R2C7SMTDWWGT4R4V3B
-  - file-01M326A1R2C7SMTDWWGT4R4V3B, PRIVATE, generation 13 -> republish this cycle
-  - draft rebuilt this cycle (touch+hygiene); publish with generation from tools file read
-- Repo: github.com/aeiouvcode/frame-zero, main, index.html at root (+ these state files)
+## Live
+- Pages: https://aeiouvcode.github.io/frame-zero/ - this commit's index.html md5 254d51ead41cb85014591c9b37762447 (gen 20).
+- App File (PRIVATE): https://files.instinct.com/file-01M326A1R2C7SMTDWWGT4R4V3B generation 20, same md5, boot-verified.
+- Archive File (PRIVATE): https://files.instinct.com/file-01M3GKZV7ZBPN2X34B5C33P4P1 generation 4 - harnesses + deploy machinery + app snapshot + spine; single-checkout recovery point.
 
 ## Verification status
-- node --check: PASS | rehash.py (CSP sha256 script+style): PASS
-- Security 5-check: PASS all five (no secrets, no outbound calls, dependency-free,
-  innerHTML sinks static-authored or via U.sanitizeSvg, nothing phoning home)
-- Audio mix model: no clipping (worst ~0.66 peak into compressor); balance PASS
-- Grain fix: pixel-verify before/after rain frame post-deploy; revert path documented in CURRENT_TASK.md
-- Fade-in fix verified live post-deploy via FZ.audio._ambLevel sampling
-  (t=50ms vs t=1s after amb start) - result recorded in cycle report
-- Boot screenshot at 390px: verified via File preview
+- Harnesses: save 7/7, graph 9/9, beat 7/7, registry 7/7, art 25/25 (all non-vacuous, asserted values).
+- Security 5-check (every cycle): PASS - no secrets, no outbound calls, dependency-free, sanitizeSvg on all dynamic innerHTML, nothing phoning home. CSP sha256 matches inline script+style bytes.
+- Boot: verified in File preview iframe at 390px before each File publish.
 
 ## Deploy machinery
-- rehash.py: base64 sha256 of inline script/style into CSP meta (MANDATORY after any edit)
-- bridge-tree.html: data-URL page; GET ref -> GET commit -> POST blob per file ->
-  POST tree (base_tree) -> POST commit -> PATCH ref; PARAMETERIZED commit message
-- PAT: vault entry 'GitHub push token - aeiouvcode' (rotated Sep 22)
-- File: tools file checkout -> python3 scripts/port_to_file.py (in File source) ->
-  build -> preview-verify boot at 390px -> publish with generation from tools file read
+- Edit /tmp/fz.js (extracted bundle) -> re-embed -> python3 rehash.py index.html (CSP sha256, mandatory) -> port_to_file.py for the File (serves src/fz-runtime.js, NOT index.html) -> bridge-tree.html (Git Data API multi-file, vault PAT 'GitHub push token - aeiouvcode', PARAMETERIZED commit message) -> curl md5 verify.
+- Workspace is losable (wiped Sep 27 15:42, recovered in minutes). Durable homes: this repo, the two Files, parent-held tarballs.
