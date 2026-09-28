@@ -10,10 +10,8 @@
    move: enumerate panels/scenes setting required-interaction flags (tapped cells, hotzones, fragment picks); assert each gate's interactive element exists in that panel and its handler flips the flag. Non-vacuous: asserted gate set, not a scan.
    pass-test: node harness exit 0 with asserted gate list; any unwired gate = FAIL + fix
 
-3. Perf audit (DOM weight per scene at 390px)
-   gap: heaviest scenes (archiveRoom ~245 elements, shelves ~246) unmeasured against a budget
-   move: assert per-scene element counts under budget ceilings; flag growth over time via pinned counts
-   pass-test: ceilings asserted per scene; regression fails loudly
+3. Perf audit REMAINDER: per-scene pinned element counts (currently budget ceilings only). Also: choice-path coverage - run each choice scene once per option, assert every route completes.
+   pass-test: pinned counts fail loudly on any scene growth
 
 4. Manga surface vocabulary pass (design move, deferred)
    gap: dialogue bubbles, chapter-end cards would deepen the manga read

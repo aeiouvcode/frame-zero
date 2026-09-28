@@ -1,14 +1,14 @@
 # CURRENT TASK - FRAME ZERO
-Updated: Sep 28, 5:58 AM IST
+Updated: Sep 28, 4:44 PM IST
 
-## Just shipped (this commit)
-Gen 20 to Pages: LOST PAGES coda re-read + fail-loud audio (gen 19/20 work), five audit harnesses under prep/ (save 7, graph 9, beat 7, registry 7, art 25), refreshed doc spine. Owner go-live: WhatsApp Sep 28 5:56:46 AM "go live on all".
+## State
+Pages gen 20 (49c95ee1); app File gen 21 (reading-chrome fix, staged for next approved Pages push). Six harnesses, 121 checks, all green.
 
 ## Next actions (ranked, see PLAN.md)
-1. Interaction-gate audit: scenes requiring a tap before advance - assert each gate's interactive element exists and its handler flips the flag (definition in PLAN.md #2).
-2. Perf audit: per-scene DOM element budgets, pinned counts, fail-loud on growth.
-3. Manga surface vocabulary pass (design move, critic >=8 at 390px).
+1. Perf pinned counts: per-scene exact element-count pins (ratchet on intentional growth only).
+2. Choice-path coverage: run choice scenes once per option; assert every route completes.
+3. Say-bubble placement pass: bubbles authored per-beat sometimes cover speaker faces (seen on ch4_s3); per-scene placement audit + nudges, critic >=8.
 
 ## Standing gates
-- Public Pages pushes need the owner's explicit yes per push (Sep 26 17:26 rule; batch grant consumed by this commit).
+- Public Pages pushes need the owner's explicit yes per push.
 - PRIVATE Instinct File publishes are in autonomous scope.
