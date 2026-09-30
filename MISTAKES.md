@@ -37,3 +37,20 @@ Fix: art-structure audit (prep/art-audit.js) now asserts generated SVG signature
 ## Sep 28, 4:37 AM - snapshot file-count misreport (reporting accuracy)
 What: reported snapshot #2 as "29 files"; the tar held 24 files. Count came from `tar -tzf | wc -l`, which includes directory entries.
 Fix: count files only (`tar -tzf | grep -v '/$' | wc -l`) or omit the count. Parent reconciled; no content lost.
+
+## Sep 29, 4:35 AM - say() placed by authored width, CSS max-width silently narrowed the box
+What: tail-aware bubble placement used o.w (up to 640) but the CSS max-width cap (420 base / 320 on <=480px) shrinks the rendered box; live measurement showed tails still 87px off speakers after the first fix.
+Root cause: two sources of truth for one number (JS placement math vs CSS cap). The node harness has no layout engine, so it could not catch a RENDERED-width defect; only live measurement in the preview iframe did.
+Rule: placement that must align with rendered geometry must read the rendered box (offsetWidth) after style application, and the harness mirror must encode the CSS cap (min(w,320)) explicitly. CSS constraints that affect layout math are part of the placement contract - grep the stylesheet before computing.
+
+## Sep 28, 10:32 PM - harness coupled to hardcoded chapter IIFE line spans
+What: playthrough-audit located chapter IIFEs by line numbers; any edit shifted them and the harness extracted garbage spans silently.
+Fix: extract IIFEs by content markers (chapter header comments) with assertions that all five were found. Rule: extract by content, never by line numbers - line-coupled harnesses break silently on every edit.
+
+## Sep 30, 10:38 AM - lesson A3 recurred one layer down (Settings.init trusted merged save data)
+What: Save.load got schema merge+clamp in the A3 fix batch, but Settings.init consumed the merged settings object with zero validation; a tampered volume string reached the Web Audio ramp as NaN (latent throw on first unmute).
+Rule: hardening a data BOUNDARY (storage load) does not harden its CONSUMERS. Every consumer of untrusted merged data needs its own schema validation, or the boundary must validate per-consumer schema. Grep all readers of the hardened object before declaring the class closed.
+
+## Sep 30, 4:42 PM - nearly declared an overflow defect by measuring the wrong element
+What: chapter overlay unlocked state at 375x667 showed inner list lastBottom 795 > vh 643 with overflowY:visible - looked like the gen-23 no-scroll defect. But the OVERLAY (.fz-overlay) is the scroll container (overflow-y:auto + justify-content:safe center); content is fully reachable by scroll.
+Wrong path risk: nearly "fixed" CSS that was already correct (would have duplicated gen-23's fix onto a working surface). Rule: for overflow questions, identify the actual scroll container first (walk up to the fixed-position ancestor) and verify scrollTop reaches the content - never judge reachability from an inner element's overflow style.

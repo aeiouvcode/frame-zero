@@ -6,7 +6,7 @@
 | Settings (perf grid, ERASE SAVE crimson) | settings overlay | live-verified Sep 26 10:34 AM |
 | Chapter select (locks, unlockedCh) | chapter list UI | screenshot-verified |
 | Scene engine (panels, beats, camera) | S.add scenes ch1-5 | ch1 animated moves verified; ch2-5 cut-only by design |
-| Dialogue system (say/narr, thought/shout styles) | beats + dlg renderer | verified in-scene; em-dash fix staged 5623c6c6 |
+| Dialogue system (say/narr, thought/shout styles) | beats + dlg renderer | tail tips land <=3px of anchor (gen 22, cap-aware placement, live-measured); phone font 26px; 146 placements harness-asserted |
 | Audio (beds fade-in, sfx, heartbeat, mute) | FZ.audio | verified Sep 26 12:27 AM milestone |
 | Film grain overlay | grain canvas (source-over) | verified Sep 26 |
 | Clue system + CLUE FOUND caption | clue defs + caption() | spot-verified |

@@ -48,12 +48,29 @@ global.window = { FZ };
 global.performance = { now: () => Date.now() };
 
 // ---- load chapter IIFEs (they register into fake FZ.story) ----
-const chapterSpans = [[2255, 2514], [2522, 2952], [2960, 3268], [3276, 3516], [3524, 3985]];
+// chapter IIFEs: top-level (function () { ... })(); blocks AFTER the FZ.story module (line numbers shift as the bundle edits)
 const lines = src.split('\n');
-for (const [a, b] of chapterSpans) {
-  const code = lines.slice(a - 1, b).join('\n');
-  try { eval(code); } catch (e) { T('chapter IIFE ' + a + ' evals clean', false, e.message); }
+const storyEnd = src.indexOf('FZ.ui = (function'); // chapters begin after story+ui modules
+const chapterSpans = [];
+let scan = src.indexOf('FZ.ui = (function');
+scan = src.indexOf('\n})();', scan) + 7; // end of ui module
+while (true) {
+  const start = src.indexOf('\n(function () {', scan);
+  if (start < 0) break;
+  const end = src.indexOf('\n})();', start);
+  if (end < 0) break;
+  chapterSpans.push([start + 1, end + 7]);
+  scan = end + 7;
 }
+// the LAST top-level IIFE is the boot module, not a chapter - chapters are those that call S.add
+let chapterCount = 0;
+for (const [a, b] of chapterSpans) {
+  const code = src.slice(a, b);
+  if (!code.includes('S.add({')) continue;
+  chapterCount++;
+  try { eval(code); } catch (e) { T('chapter IIFE @' + a + ' evals clean', false, e.message); }
+}
+T('P0 five chapter IIFEs loaded', chapterCount === 5, 'got ' + chapterCount);
 T('P0 all 55 scenes registered', scenes.length === 55, 'got ' + scenes.length);
 
 // ---- recording ctx ----
@@ -68,7 +85,9 @@ function makeCtx(scene, rec) {
     show: p => refId(p), hide: p => refId(p),
     setArt: (p, s) => { refId(p); if (typeof s === 'string') rec.artLens.push(s.length); },
     transform: p => refId(p),
-    say() {}, narr() {}, clearDialogue() {},
+    say: o => { if (o && typeof o.x === 'number') rec.says.push({ who: o.who || '', x: o.x, y: o.y, w: o.w || 340, tail: o.tail || '' }); },
+    narr: (t, x, y, w) => { if (typeof x === 'number') rec.says.push({ who: 'NARR', x, y, w: w || 460, tail: '' }); },
+    clearDialogue() {},
     cam() { return Promise.resolve(); }, camSnap() {},
     sfx: n => { rec.sfx.add(n); }, amb: (n) => { rec.amb.add(n); },
     particles() {}, fx: fnProxy,
@@ -86,7 +105,7 @@ const badScenes = [];
 const stats = { panels: 0, refs: 0, hotzones: 0, choiceBeats: 0, stringNexts: 0 };
 const perf = [];
 for (const scene of scenes) {
-  const rec = { panels: new Set(), refs: new Set(), hotzones: [], clues: new Set(), sfx: new Set(), amb: new Set(), artLens: [] };
+  const rec = { panels: new Set(), refs: new Set(), hotzones: [], clues: new Set(), sfx: new Set(), amb: new Set(), artLens: [], says: [] };
   const ctx = makeCtx(scene, rec);
   const errs = [];
   try { if (scene.enter) await scene.enter(ctx); } catch (e) { errs.push('enter: ' + e.message); }
@@ -103,6 +122,8 @@ for (const scene of scenes) {
           Array.isArray(b.options) && b.options.length >= 2 && new Set(b.options.map(o => o.id)).size === b.options.length && b.options.every(o => o.id && o.label),
           JSON.stringify((b.options || []).map(o => o.id)));
       } else if (b && b.t === 'show') rec.refs.add(b.panel);
+      else if (b && b.t === 'say') rec.says.push({ who: b.who || '', x: b.x, y: b.y, w: b.w || 340, tail: b.tail || '' });
+      else if (b && b.t === 'narr' && typeof b.x === 'number') rec.says.push({ who: 'NARR', x: b.x, y: b.y, w: b.w || 460, tail: '' });
       else if (b && (b.t === 'hide' || b.t === 'art' || b.t === 'ptransform' || b.t === 'anim' || b.t === 'unanim')) rec.refs.add(b.panel);
     } catch (e) { errs.push('beat ' + bi + ': ' + e.message); }
   }
@@ -123,7 +144,15 @@ for (const scene of scenes) {
     try { if (typeof nx === 'function') nx = nx(ctx); } catch (e) { errs.push('next(): ' + e.message); nx = null; }
     if (typeof nx === 'string') { stats.stringNexts++; if (!sceneIds.has(nx)) errs.push('next -> unregistered scene: ' + nx); }
   }
-  stats.panels += rec.panels.size; stats.refs += rec.refs.size; stats.hotzones += rec.hotzones.length;
+  stats.panels += rec.panels.size; stats.refs += rec.refs.size; stats.hotzones += rec.hotzones.length; stats.says = (stats.says || 0) + rec.says.length;
+  for (const sy of rec.says) {
+    const bw = Math.min(sy.w, 320), tailX = sy.tail === 'left' ? 0.22 : sy.tail === 'right' ? 0.78 : 0.5; // 320 = phone max-width cap
+    const left = Math.max(16, Math.min(sy.x - bw * tailX, PAGE_W - bw - 16));
+    const tip = left + bw * tailX;
+    if (Math.abs(tip - sy.x) > 40) errs.push(`say (${sy.who}) tail tip lands ${Math.round(Math.abs(tip - sy.x))}px off anchor (clamp)`);
+    if (bw > PAGE_W - 32) errs.push(`say (${sy.who}) bubble wider than page: ${bw}`);
+    if (sy.x < 0 || sy.x > PAGE_W || sy.y < 0 || sy.y > PAGE_H) errs.push(`say (${sy.who}) anchor off page: ${sy.x},${sy.y}`);
+  }
   perf.push({ id: scene.id, panels: rec.panels.size, artBytes: rec.artLens.reduce((a, b) => a + b, 0) });
   if (errs.length) { badScenes.push(scene.id); for (const e of errs) console.log('  [' + scene.id + ']', e); }
   T('P1 ' + scene.id + ' executes clean', errs.length === 0, errs[0] || '');
@@ -146,6 +175,7 @@ T('P3 coverage: >=90 panel refs validated', stats.refs >= 90, 'refs: ' + stats.r
 T('P3 coverage: >=18 hotzones geometry-checked', stats.hotzones >= 18, 'hotzones: ' + stats.hotzones);
 T('P3 coverage: >=2 choice surfaces validated (beats + showChoice)', stats.choiceBeats + choiceCalls.length >= 2, 'beats: ' + stats.choiceBeats + ', calls: ' + choiceCalls.length);
 T('P3 coverage: >=40 string nexts resolved', stats.stringNexts >= 40, 'nexts: ' + stats.stringNexts);
+T('P3 coverage: >=60 say/narr placements validated', (stats.says || 0) >= 60, 'says: ' + (stats.says || 0));
 console.log('coverage:', JSON.stringify(stats), '| heaviest:', heaviest.id, heaviest.artBytes, 'bytes | most panels:', mostPanels.id, mostPanels.panels);
 console.log(`\n${pass} passed, ${fail} failed (${scenes.length} scenes, ${choiceCalls.length} showChoice calls)`);
 process.exit(fail ? 1 : 0);
