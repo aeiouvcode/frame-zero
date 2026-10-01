@@ -18,4 +18,4 @@
    move: design at 390px, critic screenshots, ship only at >=8
    pass-test: critic score >=8 at 390px
 
-Done: LOST PAGES ch6 (gen 18 live), save hardening (gen 18), coda re-read + fail-loud audio (gen 19/20), audit harnesses save/graph/beat/registry (7+9+7+7), art-audit full coverage 25/25 (Sep 28 4:31 AM cycle).
+Done: LOST PAGES ch6 (gen 18 live), save hardening (gen 18), coda re-read + fail-loud audio (gen 19/20), audit harnesses save/graph/beat/registry (7+9+7+7), art-audit 25/25, playthrough 68, choice-path 73, perf-pins 59, hotzone 112, save-migration 373, audio-graph 35 (Sep 30 10:38 PM cycle: 345 nodes, 447 param events, zero leaks). gen 22-24 live on Pages (c767f141, owner batch go-live).

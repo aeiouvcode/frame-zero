@@ -1,0 +1,46 @@
+// FRAME ZERO keyboard/a11y audit (Oct 1 PM). Extracts the real global keydown handler and drives it.
+const fs=require('fs'); const src=fs.readFileSync('/tmp/fz.js','utf8');
+let pass=0,fail=0; const T=(n,c,x)=>{c?pass++:(fail++,console.log('FAIL',n,x||''))};
+const i=src.indexOf("window.addEventListener('keydown', (ev) => {\n      if (!ev.target || !ev.target.matches || ev.target.matches('input,textarea"); T('K0 handler found',i>=0);
+const j=src.indexOf('\n    });',i); const body=src.slice(i+"window.addEventListener('keydown', ".length, j+7);
+let log=[]; let overlayOpen=false;
+const E=()=>({Engine:{advance:()=>log.push('advance'),prevScene:()=>log.push('prev'),pause:()=>log.push('pause'),paused:false}});
+const $=()=>({click:()=>log.push('sound')}); const closeOverlays=()=>log.push('close');
+let choiceOn=false, focused=null, focusLog=[]; const mk=i=>({focus(){focused=this;focusLog.push(i)}});
+const opts=[mk(0),mk(1),mk(2)];
+const choiceBox={classList:{contains:()=>choiceOn},querySelectorAll:()=>opts};
+const document={querySelector:()=>overlayOpen?{}:null,getElementById:id=>id==='fz-choice'?choiceBox:null,get activeElement(){return focused}};
+const h=eval('('+body.replace(/\)\s*;?\s*$/,'')+')');
+const tgt=(kind)=>({matches:s=>s.split(',').includes(kind),closest:s=>s.split(',').some(x=>x===kind||(kind==='hotzone'&&x==='[role="button"]'))?{}:null});
+const press=(key,t,ov)=>{log=[];overlayOpen=!!ov;h({key,target:t,preventDefault(){log.push('pd')}});return log.join(',')};
+const body_={matches:()=>false,closest:()=>null};
+T('K1 space on body advances',press(' ',body_).includes('advance'));
+T('K2 arrowright on body advances',press('ArrowRight',body_)==='pd,advance'||press('ArrowRight',body_).includes('advance'));
+T('K3 space on button does NOT advance',!press(' ',tgt('button')).includes('advance'));
+T('K4 space on role=button hotzone does NOT advance',!press(' ',tgt('hotzone')).includes('advance'));
+T('K5 enter on button does NOT advance',!press('Enter',tgt('button')).includes('advance'));
+T('K6 space in input ignored',press(' ',tgt('input'))==='');
+T('K7 overlay open: space no advance',!press(' ',body_,true).includes('advance'));
+T('K8 overlay open: arrowleft no prev',!press('ArrowLeft',body_,true).includes('prev'));
+T('K9 overlay open: Escape closes',press('Escape',body_,true).includes('close'));
+T('K10 overlay open: p no pause',!press('p',body_,true).includes('pause'));
+T('K11 m toggles sound closed',press('m',body_).includes('sound'));
+T('K12 arrowleft prev closed',press('ArrowLeft',body_).includes('prev'));
+// choice-list navigation
+choiceOn=true; focused=null; focusLog=[];
+let r=press('ArrowDown',body_); T('K18 choice: ArrowDown focuses first',focusLog.join()==='0'&&!r.includes('advance'),r+focusLog);
+press('ArrowDown',body_); T('K19 choice: ArrowDown moves next',focusLog.join()==='0,1');
+press('ArrowUp',body_); press('ArrowUp',body_); T('K20 choice: ArrowUp wraps to last',focusLog.join()==='0,1,0,2',focusLog.join());
+r=press(' ',body_); T('K21 choice: space does not advance',!r.includes('advance'));
+r=press('ArrowLeft',body_); T('K22 choice: ArrowLeft never navigates scene back',!r.includes('prev'));
+press('End',body_); T('K23 choice: End -> last',focused===opts[2]);
+choiceOn=false;
+T('K24 non-element target (document) does not throw',(()=>{try{h({key:' ',target:{},preventDefault(){}});return true}catch(e){return false}})());
+// static a11y
+T('K13 hotzones tabindex+role',/role: 'button'[^}]*tabindex: '0'/.test(src));
+T('K14 all 5 overlays role=dialog',(src.match(/class="fz-overlay[^"]*"[^>]*role="dialog"/g)||[]).length>=4,(src.match(/role="dialog"/g)||[]).length);
+T('K15 icon buttons have aria-label',(src.match(/class="fz-icon-btn"[^>]*aria-label/g)||[]).length===4);
+T('K16 focus-visible styles',fs.readFileSync('index.html','utf8').includes('.fz-btn:focus-visible'));
+T('K17b choice focuses first option on open',/first\.focus\(\{ preventScroll: true \}\)/.test(src));
+T('K17 bonus end card hides clue grid',/fz-end-clues'\)\.style\.display = bonus/.test(src));
+console.log(`keyboard-audit: ${pass} passed, ${fail} failed`);process.exit(fail?1:0);

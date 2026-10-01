@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0kZpq8hdkoFaLKWJUmWNv86y0yawaw5AepVx70ab7wk='; style-src 'sha256-qQUYaDOGt1eWvAhzeSpZXKZ5QUFHJWoEQ38y+gml2Vw='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QTEk9k8ddl/XusmNjt9uhH/JvIPst9f6aOQ/VQ1yyAI='; style-src 'sha256-qQUYaDOGt1eWvAhzeSpZXKZ5QUFHJWoEQ38y+gml2Vw='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -2526,7 +2526,7 @@ FZ.ui = (function () {
     $('#fz-settings-close').addEventListener('click', () => { closeOverlays(); if (overlayFromTitle) { overlayFromTitle = false; showTitle(); } });
     $('#fz-clues-close').addEventListener('click', closeOverlays);
     $('#fz-chapters-close').addEventListener('click', () => { closeOverlays(); showTitle(); });
-    $('#fz-end-retry').addEventListener('click', () => { closeOverlays(); E().Engine.goto('ch5_s6'); });
+    $('#fz-end-retry').addEventListener('click', () => { closeOverlays(); E().Engine.goto($('#fz-end-retry').dataset.to || 'ch5_s6'); });
     $('#fz-end-home').addEventListener('click', () => { closeOverlays(); showTitle(); });
     $('#fz-begin').addEventListener('click', () => { FZ.audio.start(); closeOverlays(); E().Engine.goto('ch1_s1'); });
     $('#fz-continue').addEventListener('click', () => {
@@ -2569,7 +2569,25 @@ FZ.ui = (function () {
 
     // keyboard
     window.addEventListener('keydown', (ev) => {
-      if (ev.target.matches('input,textarea')) return;
+      if (!ev.target || !ev.target.matches || ev.target.matches('input,textarea,select')) return; // non-element targets (document/window) are never story input
+      // a11y: Space/Enter on a focused control belongs to that control, never the story
+      if ((ev.key === ' ' || ev.key === 'Enter') && ev.target.closest && ev.target.closest('button,[role="button"],a,[role="dialog"]')) return;
+      // a11y: with an overlay open, story keys must not drive the scene behind it
+      // a11y: choice list is keyboard-navigable (Up/Down/Home/End move focus) and owns story keys while open
+      const choiceBox = document.getElementById('fz-choice');
+      if (choiceBox && choiceBox.classList.contains('on')) {
+        const opts = Array.prototype.slice.call(choiceBox.querySelectorAll('.choice-opt'));
+        const at = opts.indexOf(document.activeElement);
+        let to = -1;
+        if (ev.key === 'ArrowDown' || ev.key === 'ArrowRight') to = at < 0 ? 0 : (at + 1) % opts.length;
+        else if (ev.key === 'ArrowUp' || ev.key === 'ArrowLeft') to = at < 0 ? opts.length - 1 : (at - 1 + opts.length) % opts.length;
+        else if (ev.key === 'Home') to = 0;
+        else if (ev.key === 'End') to = opts.length - 1;
+        if (to >= 0 && opts[to]) { ev.preventDefault(); opts[to].focus(); }
+        return;
+      }
+      const overlayOpen = !!document.querySelector('.fz-overlay:not(.hidden)');
+      if (overlayOpen && ev.key !== 'Escape') return;
       if (ev.key === 'ArrowRight' || ev.key === ' ') { ev.preventDefault(); E().Engine.advance(); }
       else if (ev.key === 'ArrowLeft') E().Engine.prevScene();
       else if (ev.key === 'p' || ev.key === 'P') E().Engine.pause(!E().Engine.paused);
@@ -2741,6 +2759,7 @@ FZ.ui = (function () {
       });
       box.classList.add('on');
       document.body.classList.add('choice-open');
+      const first = list.querySelector('.choice-opt'); if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
     });
   }
 
@@ -2752,12 +2771,19 @@ FZ.ui = (function () {
   };
   function showEndCard() {
     const d = FZ.engine.Save.data;
-    const e = ENDING_TEXT[d.ending];
+    const cs = FZ.engine.Engine.currentScene;
+    const bonus = !!(cs && cs.ch === 6);
+    const e = bonus ? null : ENDING_TEXT[d.ending];
     const seen = d.endings || (d.endings = {});
-    if (d.ending && !seen[d.ending]) { seen[d.ending] = Date.now(); FZ.engine.Save.save(); }
-    U.$('#fz-end-chn').textContent = e ? 'ENDING \u2014 ' + Object.keys(seen).length + ' OF 3 SEEN' : 'FRAME ZERO';
-    U.$('#fz-end-title').textContent = e ? e.name : 'FRAME ZERO';
-    U.$('#fz-end-epilogue').textContent = e ? e.ep : '';
+    if (!bonus && d.ending && !seen[d.ending]) { seen[d.ending] = Date.now(); FZ.engine.Save.save(); }
+    const nFrag = Object.keys(d.fragments || {}).length;
+    U.$('#fz-end-chn').textContent = bonus ? 'LOST PAGES \u2014 ' + nFrag + ' / 7' : (e ? 'ENDING \u2014 ' + Object.keys(seen).length + ' OF 3 SEEN' : 'FRAME ZERO');
+    U.$('#fz-end-title').textContent = bonus ? 'THE LAST PAGE' : (e ? e.name : 'FRAME ZERO');
+    U.$('#fz-end-epilogue').textContent = bonus ? 'The archive is quiet. Every page stays recovered.' : (e ? e.ep : '');
+    U.$('#fz-end-retry').textContent = bonus ? 'BACK TO THE ARCHIVE' : 'TRY ANOTHER ENDING';
+    U.$('#fz-end-retry').dataset.to = bonus ? 'lp_hub' : 'ch5_s6';
+    U.$('#fz-end-stats').style.display = bonus ? 'none' : '';
+    U.$('#fz-end-clues').style.display = bonus ? 'none' : '';
     const clueTotal = Object.keys(CLUE_BOOK).length, clueFound = FZ.engine.Save.clueCount();
     const statsEl = U.$('#fz-end-stats');
     if (FZ.engine.Settings.values.motion === 'reduced') {

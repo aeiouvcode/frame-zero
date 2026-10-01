@@ -29,11 +29,18 @@ Updated: Sep 30, 10:29 PM IST (GO-LIVE: gen 22-24 batch to public Pages under ow
 - Full suite: save 7/7, graph 9/9, beat 7/7, registry 7/7, art 25/25, playthrough 66/66 (121 checks total). Security 5-check PASS (unchanged app code).
 - Outcome: NO-SHIP (third consecutive audit-only cycle). App keeps passing deeper audits; harness net now includes full headless execution.
 
+## Cycle Sep 30 10:36 PM - audio-graph audit, NO-SHIP (zero defects)
+- Built prep/audio-graph-audit.js (35 checks): mock Web Audio API (param event log, node lifecycle tracking), exercised all 6 amb beds + 12 sfx + heartbeat + glitch at corruption 0/0.5/1.
+- Measured: 345 nodes, 447 param events; every started oscillator/buffer stopped (no leaks); no exponentialRamp <= 0; no non-finite values; bus graph master->comp->destination + amb/sfx->master verified; start idempotent; mute/volume/corruption clamped; no-AudioContext env degrades without throwing.
+- One test-premise fix during authoring (tag-string mismatch in my own assertion) - verified against source before concluding; app code untouched.
+- Observations (not defects): glitch ring-mod drives gain param negative by design (ring modulation); lightOut double-connects src->g (Web Audio dedupes); amb.rain ignores intensity change while playing (continuity choice).
+- Result: PASS, critic 9/10. App bytes unchanged; no File republish (browser-minimal). Suite now 775 checks / 10 harnesses.
+
 ## Cycle Sep 30 10:27 PM - GO-LIVE gen 22-24 batch to public Pages
 - Grant: owner's WhatsApp 'go public where it's behind' (10:26:52 PM IST), relayed by parent with runtime delegation context; verified verbatim against the observation database (author=user, phone channel). Public (gen 21) strictly behind verified local (gen 24) -> deploy authorized by the batch grant's own terms.
 - Foreign-commit check: repo log reviewed (ee8a4c2e tip = my gen-21 bytes via approved bridge); no foreign commits to preserve beyond it; tree commit built on top.
 - Payload: index.html (gen 24) + 7 spine docs + prep/ harnesses (10 suites).
-- Live verify + report: see milestone message. Next public push needs a fresh owner yes.
+- DEPLOYED: commit c767f1418fa44eb2292bf6a15172f55a3d48cf12 on main; live https://aeiouvcode.github.io/frame-zero/ serves gen-24 bytes (md5 a2bc5d7dcb1a7089d6a4235386d97efb, verified past CDN cache, attempt 2). Next public push needs a fresh owner yes.
 
 ## Cycle Sep 30 4:35 PM - NO-SHIP (title screen + chapter-select design pass)
 - Title screen at 390px: strong hierarchy (serif FRAME / crimson ZERO / panel art), 55px touch targets, bottom note clears 820px viewport. PASS.
@@ -113,3 +120,16 @@ Updated: Sep 30, 10:29 PM IST (GO-LIVE: gen 22-24 batch to public Pages under ow
 
 ## Operating rules (owner, via parent; all verified on his WhatsApp)
 1. BROWSER-MINIMAL. 2. 20-MIN RULE (log + escalate, never silently abandon). 3. CODE QUALITY (fail loud, non-vacuous verification). 4. LOGIC-FIRST. 5. BACKUP MIRROR (snapshot tarball to parent every closeout; local-only state is losable).
+
+## Oct 1 interaction-gate audit (prep/gate-audit.js)
+~100 checks green (11th harness). Gate set asserted: terminals {ch5_coda, lp_coda, lp_hub}; tap/autoNext everywhere else; no unbounded loops/Promises in scene literals; no hotzone gates advance (hotzones are optional flavor); all 16 wired UI ids exist in markup; dyn-next (ch5_s6) resolves for all 3 endings; 7 lost pages each recover own fragment and return to hub. Two assertion-premise fixes during authoring (endings route to ch5_coda, not end card; goto(null)->end card) verified against source. ZERO app defects.
+Observation (not defect, NO-SHIP): lp_coda exits via goto(null)->showEndCard, which shows the main-story ending epilogue (or bare FRAME ZERO if none) and TRY ANOTHER ENDING -> ch5_s6. Mild wart; candidate polish for a future deploy.
+
+## Oct 1 gen 25 (File only, Pages stays gen 24)
+Bonus-aware end card: showEndCard branches on currentScene.ch===6 -> "LOST PAGES - n / 7", "THE LAST PAGE", archive epilogue, retry -> "BACK TO THE ARCHIVE" (lp_hub); no ending bookkeeping on bonus path. Main-story card unchanged (verified ERASED / 1 OF 3 SEEN / TRY ANOTHER ENDING -> ch5_s6). Gate-audit +3 checks (103). Suite 12 files green. Critic 8.5/10 (390px; residual: bonus card still lists SECRETS FOUND + clue grid). File gen 25 PRIVATE published. Pages public = gen 24 (needs owner yes for gen 25).
+
+## Oct 1 PM gen 26 (File only; Pages still gen 24; owner directive 16:45: private/local only, no go-live)
+Keyboard/a11y audit (prep/keyboard-audit.js, 18 checks; mutation-checked: 6 fail on old code). REAL DEFECTS fixed: (1) Space/Enter on a focused button/hotzone also advanced the story (global handler); (2) with any overlay open, Space/Arrows/P drove the scene behind it (ArrowLeft could navigate back under the ending card). Fix: handler yields to focused controls, and ignores story keys while an overlay is open (Escape still closes). Bonus end card now hides secrets stat + clue grid. Live-verified in File preview with real KeyboardEvents: body space +1, button space +0, overlay arrow +0, body arrow +1. Critic 8.5/10 (card clean at 390px). 13 harness files green. File gen 26 PRIVATE.
+
+## Oct 1 night gen 27 (File only; Pages gen 24; private/local only)
+Choice overlay keyboard nav: focus lands on first option on open; Up/Down/Left/Right/Home/End move focus (wrap); choice owns story keys while open (no scene-back under it). Key handler hardened against non-element targets (document/window synthetic events threw TypeError -> host "application error" banner; found by my own test, real keys always target elements). keyboard-audit 26 checks; 13 harness files green. Live preview: focus 01->02->03, wrap, End; no error banner after hardening. Critic 8.5/10. File gen 27 PRIVATE. Residual: no overlay focus trap/return-focus.

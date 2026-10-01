@@ -14,3 +14,6 @@ Updated: Sep 30, 10:29 PM IST
 ## Deploy machinery
 - Edit /tmp/fz.js (extracted bundle) -> re-embed -> python3 rehash.py index.html (CSP sha256, mandatory) -> port_to_file.py for the File (serves src/fz-runtime.js, NOT index.html) -> bridge-tree.html (Git Data API multi-file, vault PAT 'GitHub push token - aeiouvcode', PARAMETERIZED commit message) -> curl md5 verify.
 - Workspace is losable (wiped Sep 27 15:42, recovered in minutes). Durable homes: this repo, the two Files, parent-held tarballs.
+
+## Oct 2 go-live
+Pages = gen 27 (owner Oct 2 12:47 AM "go live where left", after /pr listing FRAME ZERO gen 25-27). index.html md5 e839a184903d9a281099680dcc6c1857. File gen 27 PRIVATE == Pages.
