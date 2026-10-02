@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QTEk9k8ddl/XusmNjt9uhH/JvIPst9f6aOQ/VQ1yyAI='; style-src 'sha256-qQUYaDOGt1eWvAhzeSpZXKZ5QUFHJWoEQ38y+gml2Vw='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0RdBKDg3DIKe5b3+G3pAUZw5NXKxfJ4EhaqAOZesEtE='; style-src 'sha256-tD4vg2yiNsT9i/v8VnzULUVZpl1/py4zi5k44QtqDfo='; img-src 'none'; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="FRAME ZERO - an interactive animated manga. A manga whose pages are not merely depicting reality - they are controlling it.">
 <meta name="theme-color" content="#0b0a08">
@@ -328,7 +328,7 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 }
 .fz-overlay.hidden { display: none; }
 .fz-overlay h2 { letter-spacing: 6px; font-size: 20px; margin-bottom: 24px; font-weight: normal; }
-.fz-overlay .panel-box { width: min(520px, 92vw); }
+.fz-overlay .panel-box { width: min(520px, 100%); } /* 100% of the padded content box: 92vw overflowed the 24px-padded overlay by 8px at 390 */
 
 /* title screen */
 #fz-title-screen { z-index: 90; padding-bottom: 96px; }
@@ -355,7 +355,7 @@ body.fz-debug .hotzone { outline: 2px solid rgba(0,120,255,.7); }
 #set-perf.seg .fz-btn { text-align: center; }
 .seg .fz-btn { min-width: 0; min-height: 44px; padding: 7px 12px; font-size: 12px; } /* 44px touch-target floor */
 .seg .fz-btn.sel { background: var(--ui-fg); color: #14110d; }
-input.fz-range { width: 130px; accent-color: var(--red); }
+input.fz-range { width: 130px; height: 44px; margin: 0; accent-color: var(--red); touch-action: pan-y; } /* 44px touch target (was 16px) */
 
 /* clues */
 .clue-item { padding: 12px 0; border-bottom: 1px solid rgba(233,228,214,.12); }
@@ -441,6 +441,7 @@ body.choice-open #fz-ui .ui-top, body.choice-open #fz-ui .ui-right, body.choice-
 .choice-opt.recovered .co-sub { color: var(--red); opacity: .9; }
 .choice-opt { animation: fz-choice-in 380ms cubic-bezier(.22,1,.36,1) both; }
 .choice-opt:hover, .choice-opt:focus-visible { border-color: var(--red); transform: translateX(4px); }
+.choice-opt:focus-visible, .hotzone:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .choice-opt:active { transform: scale(.98); }
 .fz-btn:active { transform: scale(.97); }
 .chapter-item { animation: fz-row-in 340ms cubic-bezier(.22,1,.36,1) both; }
@@ -2573,6 +2574,8 @@ FZ.ui = (function () {
       // a11y: Space/Enter on a focused control belongs to that control, never the story
       if ((ev.key === ' ' || ev.key === 'Enter') && ev.target.closest && ev.target.closest('button,[role="button"],a,[role="dialog"]')) return;
       // a11y: with an overlay open, story keys must not drive the scene behind it
+      const overlayOpen = !!document.querySelector('.fz-overlay:not(.hidden)');
+      if (overlayOpen && ev.key !== 'Escape') return;
       // a11y: choice list is keyboard-navigable (Up/Down/Home/End move focus) and owns story keys while open
       const choiceBox = document.getElementById('fz-choice');
       if (choiceBox && choiceBox.classList.contains('on')) {
@@ -2584,10 +2587,8 @@ FZ.ui = (function () {
         else if (ev.key === 'Home') to = 0;
         else if (ev.key === 'End') to = opts.length - 1;
         if (to >= 0 && opts[to]) { ev.preventDefault(); opts[to].focus(); }
-        return;
+        if (ev.key !== 'Escape') return;
       }
-      const overlayOpen = !!document.querySelector('.fz-overlay:not(.hidden)');
-      if (overlayOpen && ev.key !== 'Escape') return;
       if (ev.key === 'ArrowRight' || ev.key === ' ') { ev.preventDefault(); E().Engine.advance(); }
       else if (ev.key === 'ArrowLeft') E().Engine.prevScene();
       else if (ev.key === 'p' || ev.key === 'P') E().Engine.pause(!E().Engine.paused);
@@ -2665,12 +2666,25 @@ FZ.ui = (function () {
   }
 
   /* ---------- overlays ---------- */
+  // a11y: remember what opened an overlay and hand focus back on close; move focus into it on open
+  let overlayOpener = null;
+  function focusOverlay(id) {
+    const ov = U.$(id);
+    const a = document.activeElement;
+    overlayOpener = (a && a !== document.body && !ov.contains(a)) ? a : overlayOpener;
+    const first = ov.querySelector('button, [tabindex="0"], input');
+    if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
+  }
   function closeOverlays() {
+    const wasOpen = !!document.querySelector('.fz-overlay:not(.hidden)');
     U.$$('.fz-overlay').forEach(o => o.classList.add('hidden'));
+    if (wasOpen && overlayOpener && overlayOpener.isConnected) { try { overlayOpener.focus({ preventScroll: true }); } catch (e) {} }
+    overlayOpener = null;
   }
   function openSettings() {
     syncSettingsUI();
     U.$('#fz-settings-overlay').classList.remove('hidden');
+    focusOverlay('#fz-settings-overlay');
   }
   function openClues() {
     const list = U.$('#fz-clues-list');
@@ -2683,6 +2697,7 @@ FZ.ui = (function () {
       U.el('div', 'clue-desc', d, { text: got ? c.desc : 'Undiscovered.' });
     }
     U.$('#fz-clues-overlay').classList.remove('hidden');
+    focusOverlay('#fz-clues-overlay');
   }
   function openChapters() {
     const list = U.$('#fz-chapters-list');
@@ -2714,6 +2729,7 @@ FZ.ui = (function () {
       FZ.engine.Engine.goto('lp_hub');
     });
     U.$('#fz-chapters-overlay').classList.remove('hidden');
+    focusOverlay('#fz-chapters-overlay');
   }
   function syncSettingsUI() {
     const v = FZ.engine.Settings.values;
